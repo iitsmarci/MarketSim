@@ -1,0 +1,20 @@
+{
+  "name": "@marketsim/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "lint": "eslint src vite.config.ts --max-warnings=0",
+    "typecheck": "tsc --project tsconfig.app.json --noEmit && tsc --project tsconfig.node.json --noEmit",
+    "test": "vitest run",
+    "build": "npm run typecheck && vite build"
+  },
+  "dependencies": {
+    "@marketsim/domain": "0.0.0",
+    "@marketsim/simulation-engine": "0.0.0",
+    "@marketsim/ui": "0.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

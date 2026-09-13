@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MarketSim Worker profile</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 2rem;
+        color: #dfe9e4;
+        background: #0c1412;
+        font:
+          14px/1.55 'Cascadia Code',
+          Consolas,
+          monospace;
+      }
+      main {
+        max-width: 80rem;
+        margin: 0 auto;
+      }
+      p {
+        color: #a9b6b0;
+      }
+      pre {
+        overflow: auto;
+        border: 1px solid #2b3c36;
+        padding: 1rem;
+        background: #111d19;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>MarketSim Worker profile</h1>
+      <p>
+        Local diagnostic harness. It is not part of the production application build.
+      </p>
+      <pre id="profile-output">Warming the Worker…</pre>
+    </main>
+    <script type="module" src="/src/profiling/worker-profile.ts"></script>
+  </body>
+</html>

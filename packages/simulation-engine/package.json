@@ -1,0 +1,19 @@
+{
+  "name": "@marketsim/simulation-engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run",
+    "profile": "tsc --project tsconfig.profile.json --noEmit && node --expose-gc ../../node_modules/vitest/vitest.mjs run --config vitest.profile.config.ts --reporter=verbose",
+    "build": "tsc --project tsconfig.build.json"
+  },
+  "dependencies": {
+    "@marketsim/domain": "0.0.0"
+  }
+}
