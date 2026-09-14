@@ -1,14 +1,20 @@
 import {
+  LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION,
+  LEGACY_SIMULATION_JOB_SCHEMA_VERSION,
   MONTHLY_LOGNORMAL_MODEL_VERSION,
   SIMULATION_JOB_SCHEMA_VERSION,
+  type LegacySimulationJob,
+  type LegacySimulationJobValidationResult,
   type SimulationJob,
   type SimulationJobValidationIssue,
   type SimulationJobValidationIssueCode,
   type SimulationJobValidationResult,
   type SimulationSeedValidationResult,
   type SimulationValidationIssue,
+  type SupportedSimulationJob,
+  type SupportedSimulationJobValidationResult,
 } from './contracts';
-import { validateSimulationConfig } from './validation';
+import { validateLegacySimulationConfig, validateSimulationConfig } from './validation';
 
 export const SIMULATION_SEED_HEX_LENGTH = 32 as const;
 
@@ -118,4 +124,65 @@ export function validateSimulationJob(
     }),
     issues: NO_VALIDATION_ISSUES,
   });
+}
+
+export function validateLegacySimulationJob(
+  job: LegacySimulationJob,
+): LegacySimulationJobValidationResult {
+  const issues: SimulationValidationIssue[] = [];
+
+  if (job.schemaVersion !== LEGACY_SIMULATION_JOB_SCHEMA_VERSION) {
+    issues.push(
+      jobIssue(
+        'schemaVersion',
+        'unsupported_schema_version',
+        job.schemaVersion,
+        `schemaVersion must be ${String(LEGACY_SIMULATION_JOB_SCHEMA_VERSION)} for ${LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION}.`,
+      ),
+    );
+  }
+
+  if (job.modelVersion !== LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION) {
+    issues.push(
+      jobIssue(
+        'modelVersion',
+        'unsupported_model_version',
+        job.modelVersion,
+        `modelVersion must be ${LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION}.`,
+      ),
+    );
+  }
+
+  const seedValidation = validateSimulationSeed(job.seed);
+  if (!seedValidation.valid) {
+    issues.push(...seedValidation.issues);
+  }
+
+  const configIssues = validateLegacySimulationConfig(job.config);
+  issues.push(...configIssues);
+
+  if (issues.length > 0 || !seedValidation.valid) {
+    return Object.freeze({ valid: false, issues: Object.freeze(issues) });
+  }
+
+  return Object.freeze({
+    valid: true,
+    value: Object.freeze({
+      schemaVersion: LEGACY_SIMULATION_JOB_SCHEMA_VERSION,
+      modelVersion: LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION,
+      seed: seedValidation.value,
+      config: Object.freeze({ ...job.config }),
+    }),
+    issues: NO_VALIDATION_ISSUES,
+  });
+}
+
+export function validateSupportedSimulationJob(
+  job: SupportedSimulationJob,
+): SupportedSimulationJobValidationResult {
+  if (job.schemaVersion === LEGACY_SIMULATION_JOB_SCHEMA_VERSION) {
+    return validateLegacySimulationJob(job as LegacySimulationJob);
+  }
+
+  return validateSimulationJob(job as SimulationJob);
 }

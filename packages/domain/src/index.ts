@@ -1,4 +1,7 @@
 export {
+  LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION,
+  LEGACY_SIMULATION_JOB_SCHEMA_VERSION,
+  LEGACY_SIMULATION_RESULT_SCHEMA_VERSION,
   MONTHLY_LOGNORMAL_MODEL_VERSION,
   PERCENTILE_KEYS,
   PERCENTILE_PROBABILITIES,
@@ -10,8 +13,14 @@ export type {
   AggregatedTrajectoryPoint,
   ContributionSummary,
   DistributionStatistics,
+  LegacySimulationConfig,
+  LegacySimulationJob,
+  LegacySimulationJobValidationResult,
+  LegacySimulationResult,
   PercentileKey,
   PercentileValues,
+  RealAggregatedTrajectoryPoint,
+  RealValueResult,
   SimulationConfig,
   SimulationConfigField,
   SimulationConfigValidationResult,
@@ -24,13 +33,22 @@ export type {
   SimulationSeed,
   SimulationSeedValidationResult,
   SimulationValidationIssue,
+  SupportedSimulationJob,
+  SupportedSimulationJobValidationResult,
+  SupportedSimulationResult,
   ValidationIssue,
   ValidationIssueCode,
 } from './contracts';
 export {
   normalizeSimulationSeed,
   SIMULATION_SEED_HEX_LENGTH,
+  validateLegacySimulationJob,
   validateSimulationJob,
   validateSimulationSeed,
+  validateSupportedSimulationJob,
 } from './job-validation';
-export { SIMULATION_LIMITS, validateSimulationConfig } from './validation';
+export {
+  SIMULATION_LIMITS,
+  validateLegacySimulationConfig,
+  validateSimulationConfig,
+} from './validation';

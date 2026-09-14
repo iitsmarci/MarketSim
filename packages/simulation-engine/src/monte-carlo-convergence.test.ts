@@ -40,6 +40,7 @@ describe('Monte Carlo expectation convergence', () => {
           durationMonths: 12,
           annualExpectedReturn: 0.07,
           annualVolatility: 0.18,
+          annualInflation: 0.025,
           simulationCount: 100_000,
         },
       };

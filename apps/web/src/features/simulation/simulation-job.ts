@@ -7,6 +7,7 @@ import {
 } from '@marketsim/domain';
 
 export interface AssumptionValues {
+  annualInflation: string;
   annualReturn: string;
   horizonYears: string;
   initialCapital: string;
@@ -18,6 +19,7 @@ export interface AssumptionValues {
 export const DEFAULT_SIMULATION_SEED = '6d2b79f5a4c3e21791f0bc8d457e306a' as const;
 
 export const initialAssumptions: AssumptionValues = {
+  annualInflation: '2.5',
   annualReturn: '6.5',
   horizonYears: '30',
   initialCapital: '10000',
@@ -44,6 +46,7 @@ const assumptionByConfigField: Readonly<
   durationMonths: 'horizonYears',
   annualExpectedReturn: 'annualReturn',
   annualVolatility: 'volatility',
+  annualInflation: 'annualInflation',
   simulationCount: 'simulationCount',
 };
 
@@ -64,6 +67,7 @@ export function buildSimulationJob(
       durationMonths: numericValue(assumptions.horizonYears) * 12,
       annualExpectedReturn: numericValue(assumptions.annualReturn) / 100,
       annualVolatility: numericValue(assumptions.volatility) / 100,
+      annualInflation: numericValue(assumptions.annualInflation) / 100,
       simulationCount: numericValue(assumptions.simulationCount),
     },
   };

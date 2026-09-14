@@ -25,6 +25,7 @@ function job(seed: string = FIRST_SEED): SimulationJob {
       durationMonths: 36,
       annualExpectedReturn: 0.065,
       annualVolatility: 0.2,
+      annualInflation: 0.025,
       simulationCount: 750,
     },
   };

@@ -1,10 +1,11 @@
 # MarketSim architecture
 
-Status: accepted architecture. Milestones 1 through 5 implement the npm
+Status: accepted architecture. Milestones 1 through 6 implement the npm
 workspace, React/Vite web application, focused UI package, domain contracts,
 synchronous deterministic engine, seeded randomness, browser Worker boundary,
 the first real simulation workflow, quantitative chart inspection, and measured
-performance tooling. Storage, PWA, desktop, and mobile
+performance tooling, deterministic inflation, and parallel nominal/real
+results. Storage, PWA, desktop, and mobile
 layers remain targets rather than implemented components.
 
 ## Goals
@@ -97,13 +98,17 @@ DOM, filesystem, network, locale, or wall-clock state. Its current API is:
 
 ```ts
 simulate(job: SimulationJob): SimulationResult
+simulate(job: LegacySimulationJob): LegacySimulationResult
 ```
 
 `SimulationJob` contains job schema version, model version, explicit 128-bit
 seed, and financial configuration. The engine constructs the production seeded
 `NormalRandomSource`; an internal seam preserves controlled-source model tests.
-The result includes validated inputs, schema/model/randomness versions, seed,
-statistics, monthly percentile series, and contribution totals. Cancellation
+The current result preserves nominal statistics and contributions at the top
+level and adds a parallel `realValues` section. Its price-indexed monthly
+trajectory and payment-time-deflated contribution basis are derived after the
+unchanged nominal pass in `O(M)` time. Legacy schema-1/model-v1 jobs retain their
+original result shape and meaning. Cancellation
 and progress are orchestration concerns; a batched engine API may provide
 deterministic checkpoints for the Worker without importing Worker APIs.
 
@@ -274,6 +279,12 @@ Raw paths remain absent, working memory stays `O(N + M)`, and Worker payloads
 stay `O(M)`. Methodology and observed numbers are in
 `docs/performance-profiling.md`; they are not release targets or CI thresholds.
 
+Milestone 6 keeps the protocol shape unchanged while carrying job schema 2 and
+result schema 3. The deterministic price index introduces no Worker-owned math,
+random source, second Monte Carlo pass, or raw-path transfer. A same-process
+legacy/new benchmark isolates the measured cost of deriving real aggregates;
+the result payload remains `O(M)`.
+
 ## Application state
 
 Begin with local React state plus narrowly scoped context for stable app-level
@@ -330,6 +341,13 @@ summary, and compact accessible checkpoints. The table is a designed trend
 summary, not a dump of every monthly row. Chart interaction changes only the
 selected view; it never recalculates or interpolates financial output.
 
+Milestone 6 adds one accessible nominal/real selector. The presenter selects
+the corresponding trajectory already present in `SimulationResult`; nominal
+mode uses the existing cumulative nominal contribution line and real mode uses
+the payment-time-deflated contribution basis. Non-zero inflation results open
+in today's-euro mode, while zero inflation opens in nominal mode. The two modes
+reuse one chart rather than overlaying duplicate fans.
+
 ## Platform architecture
 
 ### Web and PWA
@@ -381,10 +399,12 @@ introduced when it adds coverage beyond those invariants.
 
 ### Integration and Worker tests
 
-Milestones 4 and 5 verify the Worker protocol/adapter, validation and error
+Milestones 4 through 6 verify the Worker protocol/adapter, validation and error
 serialization, same-job full-result equality at the adapter boundary, and real
 browser execution. Milestone 5 additionally verifies separated timing metrics
-and the production module-Worker profile. Progress, cancellation, stale-job rejection, import/export
+and the production module-Worker profile. Milestone 6 additionally verifies
+inflation-aware results and structured derived-value failures. Progress,
+cancellation, stale-job rejection, import/export
 round trips, and schema migrations remain future integration coverage.
 
 ### UI and end-to-end tests
@@ -394,7 +414,9 @@ theme selection, localization, chart alternatives, responsive layouts, reduced
 motion, persistence, offline startup, and core simulation journeys. Milestone 5
 adds exact chart-data mapping, adaptive horizon ticks, percentile ordering,
 mouse/touch-compatible pointer inspection, explicit range-key handling, and
-accessible checkpoint coverage. Automated
+accessible checkpoint coverage. Milestone 6 tests inflation input mapping and
+validation, nominal/real selection, data/table/result consistency, and the
+zero-inflation default. Automated
 accessibility checks supplement manual keyboard and screen-reader smoke tests.
 
 ### Numerical and performance verification

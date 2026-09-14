@@ -5,6 +5,8 @@ import {
   type SimulationResult,
 } from '@marketsim/domain';
 
+export type ValueMode = 'nominal' | 'real';
+
 export const FAN_CHART_VIEWBOX = Object.freeze({ width: 780, height: 320 });
 export const FAN_CHART_PLOT = Object.freeze({
   left: 68,
@@ -97,8 +99,18 @@ export function areaPath(
     .join(' ')} Z`;
 }
 
-export function buildFanChartModel(result: SimulationResult): FanChartModel {
-  const trajectory = result.trajectory;
+export function trajectoryForMode(
+  result: SimulationResult,
+  mode: ValueMode,
+): readonly AggregatedTrajectoryPoint[] {
+  return mode === 'real' ? result.realValues.trajectory : result.trajectory;
+}
+
+export function buildFanChartModel(
+  result: SimulationResult,
+  mode: ValueMode = 'nominal',
+): FanChartModel {
+  const trajectory = trajectoryForMode(result, mode);
   if (trajectory.length < 2) {
     throw new RangeError('A fan chart requires initial and final trajectory points.');
   }

@@ -1,6 +1,7 @@
 # Performance profiling
 
-Status: Milestone 5 measured baseline, optimization, and Worker profile.
+Status: Milestone 5 measured baseline, optimization, and Worker profile;
+Milestone 6 adds a same-process legacy/current inflation-overhead comparison.
 
 Performance numbers are observations from one machine, not release guarantees.
 The benchmark harnesses are deliberately separate from the normal test suite so
@@ -23,7 +24,7 @@ not an input to the production Vite build. It executes the same job sizes throug
 the real module Worker and prints a JSON report including boundary timing and
 isolated `structuredClone` measurements.
 
-## Fixed benchmark job
+## Fixed M5 benchmark job
 
 All compared runs use the same inputs:
 
@@ -61,6 +62,39 @@ The profiler checksum was exactly `18091192071.94707` before and after the
 optimization. This checksum is supporting evidence rather than the correctness
 contract; exact equivalence is also covered by focused statistics tests and the
 existing complete-result reproducibility suite.
+
+## Milestone 6 deterministic-inflation comparison
+
+The M6 profiler runs the optimized legacy schema-1/model-v1 job and the current
+schema-2 inflation-aware job alternately in the same Node process. Nominal
+capital, contribution, return, volatility, duration, count, and seed are
+identical; the current job adds deterministic annual inflation of 2.5%. Each
+model receives its own 2,000-path warm-up and three measured repetitions.
+
+Full synchronous engine duration, in milliseconds:
+
+| Paths   | Model              | Average |  Median | Minimum | Maximum | M6 median overhead |
+| ------- | ------------------ | ------: | ------: | ------: | ------: | -----------------: |
+| 10,000  | legacy M5          |   422.5 |   422.3 |   408.0 |   437.3 |                  — |
+| 10,000  | inflation-aware M6 |   413.8 |   428.0 |   374.2 |   439.1 |               1.4% |
+| 50,000  | legacy M5          | 2,193.3 | 2,226.1 | 2,121.2 | 2,232.7 |                  — |
+| 50,000  | inflation-aware M6 | 2,284.7 | 2,271.1 | 2,173.2 | 2,409.8 |               2.0% |
+| 100,000 | legacy M5          | 4,386.2 | 4,378.7 | 4,374.7 | 4,405.3 |                  — |
+| 100,000 | inflation-aware M6 | 4,599.8 | 4,638.9 | 4,465.6 | 4,694.8 |               5.9% |
+
+Environment: Node `v24.16.0`, Windows x64, AMD Ryzen 7 5700U, 16 logical
+CPUs, approximately 14.87 GB memory. These measurements were recorded on
+2026-09-13 UTC and are a fresh within-run comparison, not a comparison against
+the earlier M5 wall-clock samples above.
+
+The current result serialized to approximately 67.5 KB at every path count,
+compared with the earlier nominal-only result's approximately 31.3 KB. This is
+the expected second `O(M)` aggregate trajectory, not an `O(N × M)` raw-path
+payload. At 100,000 paths, observed post-run array-buffer deltas were 1.6 MB in
+all three current runs; the two principal path-count buffers remain 800 KB each.
+The real pass visits 121 checkpoints, performs only deterministic scaling and
+contribution accumulation, consumes no RNG, and performs no sorting. Its
+bounded overhead does not justify a production optimization or model change.
 
 ## Stage analysis
 

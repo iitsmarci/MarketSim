@@ -39,3 +39,17 @@ export class SimulationNumericalError extends Error {
     this.pathIndex = pathIndex;
   }
 }
+
+export class SimulationDerivedValueError extends Error {
+  override readonly name = 'SimulationDerivedValueError';
+  readonly month: number;
+  readonly quantity: string;
+
+  constructor(month: number, quantity: string) {
+    super(
+      `Simulation produced a non-finite derived ${quantity} at month ${String(month)}.`,
+    );
+    this.month = month;
+    this.quantity = quantity;
+  }
+}

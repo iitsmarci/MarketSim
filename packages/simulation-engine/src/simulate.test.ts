@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  MONTHLY_LOGNORMAL_MODEL_VERSION,
+  LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION,
+  LEGACY_SIMULATION_JOB_SCHEMA_VERSION,
+  LEGACY_SIMULATION_RESULT_SCHEMA_VERSION,
   PERCENTILE_KEYS,
-  SIMULATION_JOB_SCHEMA_VERSION,
-  SIMULATION_RESULT_SCHEMA_VERSION,
-  type SimulationConfig,
-  type SimulationJob,
+  type LegacySimulationConfig,
+  type LegacySimulationJob,
 } from '@marketsim/domain';
 
 import { InvalidRandomSampleError, SimulationValidationError } from './errors';
@@ -45,7 +45,7 @@ class FailingNormalSource implements NormalRandomSource {
   }
 }
 
-const baseConfig: SimulationConfig = {
+const baseConfig: LegacySimulationConfig = {
   initialCapital: 1_000,
   monthlyContribution: 100,
   durationMonths: 12,
@@ -55,27 +55,29 @@ const baseConfig: SimulationConfig = {
 };
 const TEST_SEED = '00000001000000020000000300000004';
 
-function config(overrides: Partial<SimulationConfig> = {}): SimulationConfig {
+function config(
+  overrides: Partial<LegacySimulationConfig> = {},
+): LegacySimulationConfig {
   return { ...baseConfig, ...overrides };
 }
 
-function job(input: SimulationConfig): SimulationJob {
+function job(input: LegacySimulationConfig): LegacySimulationJob {
   return {
-    schemaVersion: SIMULATION_JOB_SCHEMA_VERSION,
-    modelVersion: MONTHLY_LOGNORMAL_MODEL_VERSION,
+    schemaVersion: LEGACY_SIMULATION_JOB_SCHEMA_VERSION,
+    modelVersion: LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION,
     seed: TEST_SEED,
     config: input,
   };
 }
 
 function simulate(
-  input: SimulationConfig,
+  input: LegacySimulationConfig,
   options: { readonly randomSource: NormalRandomSource },
 ) {
   return simulateWithRandomSource(job(input), options.randomSource);
 }
 
-function deterministicBalance(input: SimulationConfig): number {
+function deterministicBalance(input: LegacySimulationConfig): number {
   const monthlyGrowth = (1 + input.annualExpectedReturn) ** (1 / 12);
   let balance = input.initialCapital;
 
@@ -92,8 +94,8 @@ describe('simulate', () => {
     const result = simulate(input, { randomSource: new FailingNormalSource() });
     const expected = deterministicBalance(input);
 
-    expect(result.schemaVersion).toBe(SIMULATION_RESULT_SCHEMA_VERSION);
-    expect(result.modelVersion).toBe(MONTHLY_LOGNORMAL_MODEL_VERSION);
+    expect(result.schemaVersion).toBe(LEGACY_SIMULATION_RESULT_SCHEMA_VERSION);
+    expect(result.modelVersion).toBe(LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION);
     expect(result.seed).toBe(TEST_SEED);
     expect(result.finalValueStatistics.min).toBeCloseTo(expected, 10);
     expect(result.finalValueStatistics.max).toBeCloseTo(expected, 10);

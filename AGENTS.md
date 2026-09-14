@@ -28,18 +28,23 @@ local by default.
 - Milestone 4 (Web Worker and real UI simulation) is complete.
 - Milestone 5 (quantitative visualization and performance profiling) is
   complete.
+- Milestone 6 (deterministic inflation and real values) is complete. Its
+  real-browser QA matrix remains explicitly unverified because the available
+  browser environment could not access the local Vite server.
 - The starting directory was empty and was not a Git repository.
 - Git is initialized on `main`; the initial baseline commit captures the
   approved Milestone 0-5 implementation.
 - npm workspaces contain the React/Vite web application and the focused
   MarketSim UI package. The representative screen now uses real engine output.
-- `packages/domain` owns the validated `SimulationConfig`, immutable result
-  and `SimulationJob` contracts, schema/model/randomness identifiers,
+- `packages/domain` owns the validated inflation-aware `SimulationConfig`,
+  immutable current and legacy result/job contracts, schema/model/randomness identifiers,
   canonical 128-bit hexadecimal seed, percentile keys, and input limits.
 - `packages/simulation-engine` implements the synchronous monthly lognormal
   model, end-of-month contributions, trajectory aggregation, Type 7
   percentiles, final distribution statistics, xoshiro128** 1.1, and midpoint
-  Box-Muller normal sampling with no React or browser dependency. A measured
+  Box-Muller normal sampling with no React or browser dependency. It derives
+  deterministic price indices, real aggregates, and payment-time-deflated real
+  contributions after the unchanged nominal pass. A measured
   typed-array distribution copy preserves exact statistics while reducing the
   dominant monthly aggregation cost.
 - Strict TypeScript, ESLint, Prettier, Vitest, Testing Library, root quality
@@ -47,9 +52,9 @@ local by default.
 - `simulate(job)` requires an explicit valid seed and produces reproducible
   complete results under the documented model/randomness contract. It has no
   ambient-randomness fallback.
-- `apps/web` owns a typed module Worker boundary, lifecycle/error state, real
-  inspectable percentile fan chart, adaptive accessible checkpoint table, and
-  real final results. React does not execute the engine on the main thread.
+- `apps/web` owns a typed module Worker boundary, lifecycle/error state,
+  inspectable nominal/real percentile fan chart, adaptive accessible checkpoint
+  table, and matching final results. React does not execute the engine on the main thread.
   Worker metrics separate startup, dispatch, validation, engine, response, and
   total duration.
 - Engine and real-Worker profilers are isolated from ordinary tests. See
@@ -195,6 +200,8 @@ and recorded as complete in the status document.
 
 - `docs/architecture.md`: target boundaries, data flow, platforms, and testing.
 - `docs/simulation-model.md`: mathematical contracts and formulas.
+- `docs/inflation-model.md`: implemented M6 deterministic inflation and
+  real-value semantics.
 - `docs/visual-direction.md`: visual identity, interaction, chart, and layout
   rules.
 - `docs/decisions.md`: accepted architecture decisions and their trade-offs.

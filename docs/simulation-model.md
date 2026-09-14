@@ -3,8 +3,8 @@
 Status: the domain contracts, validation, monthly lognormal model, path
 evolution, aggregation, percentiles, final-value statistics, seeded generator,
 and reproducibility contract described here are implemented and tested through
-Milestone 5, including the expected-value convergence and optimization-equivalence
-checks.
+Milestone 6, including deterministic inflation, parallel real values, legacy
+compatibility, expected-value convergence, and optimization-equivalence checks.
 
 ## Purpose and interpretation
 
@@ -27,9 +27,10 @@ inputs.
 | `durationMonths`       | Number of complete monthly periods                    | integer, 1 to 1,200         |
 | `annualExpectedReturn` | Effective annual expected simple return, decimal form | greater than -1, at most 10 |
 | `annualVolatility`     | Annualized standard deviation of log returns, decimal | 0 to 5                      |
+| `annualInflation`      | Deterministic effective annual price-level change     | -0.5 to 1.0                 |
 | `simulationCount`      | Number of paths                                       | integer, 1 to 100,000       |
 
-For both rate fields, `0.07` means 7%; `7` does not mean 7%. The engine accepts
+For rate fields, `0.07` means 7%; `7` does not mean 7%. The engine accepts
 duration in months and does not silently convert fractional years.
 
 Validation reports all detected field issues as stable field/code/message/value
@@ -46,6 +47,8 @@ are rejected before randomness is consumed.
 - final portfolio-value statistics;
 - investment-growth statistics after subtracting total contributions;
 - an aggregated point for month 0 and every completed month.
+- a parallel `realValues` section with real contribution, final-value,
+  investment-growth, and price-indexed monthly trajectory data.
 
 Raw paths are intentionally not returned.
 
@@ -56,10 +59,11 @@ assumption, so it is not embedded in `SimulationConfig`.
 
 ## Versioning
 
-The job uses `schemaVersion = 1`; adding seed and randomness metadata advances
-the result to `schemaVersion = 2`. The mathematical model remains
-`modelVersion = "monthly-lognormal-v1"`, and the complete randomness pipeline is
-identified as `randomnessAlgorithm = "xoshiro128ss-1.1-box-muller-v1"`.
+The current job uses `schemaVersion = 2`, the result uses `schemaVersion = 3`,
+and the full model is `modelVersion = "monthly-lognormal-inflation-v1"`. Legacy
+job schema 1/result schema 2 with `monthly-lognormal-v1` remains supported and
+is not reinterpreted. Both models use
+`randomnessAlgorithm = "xoshiro128ss-1.1-box-muller-v1"`.
 
 Schema shape, mathematical model, and randomness implementation are separate
 compatibility concerns. Reproducibility is scoped to the same supported model,
@@ -88,6 +92,38 @@ B[t] = B[t-1] * G[t] + monthlyContribution
 ```
 
 The contribution therefore earns no return in the month in which it is paid.
+
+## Deterministic inflation and real values
+
+`annualInflation = i_a` is an effective annual deterministic price-level
+change. The engine converts it geometrically, not by dividing the rate by 12:
+
+```text
+ell_i = log1p(i_a) / 12
+F_i = exp(ell_i)
+i_m = expm1(ell_i)
+P[0] = 1
+P[t] = exp(t * ell_i) = (1 + i_a)^(t/12)
+```
+
+The nominal simulation, random consumption, aggregation order, Welford
+statistics, and Type 7 percentiles execute unchanged. At each checkpoint the
+engine derives the real aggregate with the positive scale `1/P[t]`; min, max,
+mean, standard deviation, median, and every percentile are scaled without a
+second simulation or sort.
+
+Nominal contributions remain fixed and arrive at month end. Their real
+cumulative basis deflates each payment at its own checkpoint:
+
+```text
+D_real[0] = initialCapital
+D_real[t] = initialCapital + sum(k=1..t, monthlyContribution / P[k])
+```
+
+It is intentionally not `(initialCapital + t*C) / P[t]`. Real investment
+growth shifts the terminal real-value distribution by `-D_real[M]`. Complete
+semantics, numerical guards, and theoretical references are normative in
+`docs/inflation-model.md`.
 Changing to beginning-of-month contributions would change the model and must
 never be implemented as an undocumented loop reorder.
 
@@ -357,16 +393,16 @@ export policy and is never applied during compounding.
 
 ## Explicitly deferred model scope
 
-Milestone 2 does not implement inflation/real values, fees, taxes, shocks,
-sequence scenarios, multi-asset portfolios, correlation, historical bootstrap,
-or alternative return distributions. Those additions require separately
+Milestone 6 does not implement stochastic inflation, indexed contributions,
+fees, taxes, shocks, sequence scenarios, multi-asset portfolios, correlation,
+historical bootstrap, or alternative return distributions. Those additions require separately
 documented event ordering, validation, model versioning, and tests.
 
 Persistence, PWA behavior, and native shells remain outside the model and are
-not implemented through Milestone 5. Worker execution and UI state are
+not implemented through Milestone 6. Worker execution and UI state are
 application concerns and do not change these formulas.
 
-## Verification coverage through Milestone 5
+## Verification coverage through Milestone 6
 
 Executable tests cover:
 
@@ -396,3 +432,12 @@ Executable tests cover:
   the measured typed-array copy/sort path;
 - isolated 10k/50k/100k engine and real Worker profiling with fixed model,
   seed, duration, and assumptions; profiling changes no acceptance tolerance.
+- geometric inflation conversion and independent closed-form price-index checks;
+- zero, positive, negative, boundary, non-finite, and 1,200-month inflation cases;
+- payment-by-payment real contribution accumulation and regression protection
+  against deflating the entire nominal contribution line at the final index;
+- exact nominal equality between legacy and zero-inflation current jobs,
+  unchanged RNG request count/order, complete same-seed equality, and
+  different-seed divergence;
+- real min/max/mean/deviation and all percentile scaling, real investment-growth
+  shifting, Worker error serialization, and nominal/real UI selection.

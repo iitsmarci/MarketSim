@@ -1,4 +1,8 @@
 export const messages = {
+  valueModes: {
+    nominal: 'Nominal euros',
+    real: "Today's euros",
+  },
   nav: {
     homeLabel: 'MarketSim home',
     primaryLabel: 'Primary navigation',
@@ -33,10 +37,13 @@ export const messages = {
     monthlyContribution: 'Monthly contribution',
     horizon: 'Time horizon',
     annualReturn: 'Annual return assumption',
+    annualInflation: 'Annual inflation assumption',
     volatility: 'Annual volatility',
     simulationCount: 'Simulated paths',
     volatilityHelp:
       'Volatility describes how widely returns vary. It does not imply higher returns.',
+    inflationHelp:
+      "A fixed price-level assumption used to express results in today's purchasing power. It is not simulated risk.",
     simulationCountHelp:
       'More paths improve sample stability but take longer to calculate.',
     action: 'Run simulation',
@@ -53,21 +60,36 @@ export const messages = {
       'Run the model to replace this empty state with real percentile bands.',
     running: 'Calculating percentile bands',
     runningDescription: 'The page remains available while the Worker runs the model.',
-    ariaLabel: 'Fan chart of simulated portfolio value percentiles',
-    ariaDescription: (months: number, median: string, p05: string, p95: string) =>
-      `Nested percentile bands over ${String(months)} months. The final median is ${median}; the final P5 to P95 range is ${p05} to ${p95}.`,
+    ariaLabel: (mode: string) =>
+      `Fan chart of simulated portfolio value percentiles in ${mode}`,
+    ariaDescription: (
+      mode: string,
+      months: number,
+      median: string,
+      p05: string,
+      p95: string,
+    ) =>
+      `Nested percentile bands in ${mode} over ${String(months)} months. The final median is ${median}; the final P5 to P95 range is ${p05} to ${p95}.`,
+    valueModeLabel: 'Portfolio value basis',
+    nominalMode: 'Nominal',
+    realMode: 'Real',
+    realAssumption:
+      "Real values use deterministic inflation and are expressed in today's euros.",
     contributions: 'Contributed',
     timeAxis: 'time',
     inspectLabel: 'Inspect simulation period',
     inspectorEyebrow: 'Selected distribution',
-    inspectorDescription: 'Portfolio values across all seven percentiles',
+    inspectorDescription: (mode: string) =>
+      `Portfolio values across all seven percentiles in ${mode}`,
     note: (simulationCount: number) =>
       `${simulationCount.toLocaleString('en-IE')} seeded paths · simulated outcomes, not a forecast`,
-    finalRange: (p05: string, p95: string) => `Final P5–P95 range ${p05}–${p95}`,
+    finalRange: (mode: string, p05: string, p95: string) =>
+      `Final P5–P95 range in ${mode}: ${p05}–${p95}`,
     tableSummary: 'Review accessible percentile checkpoints',
     tableDescription:
       'A compact set of time checkpoints conveys the direction and widening of the simulated range without repeating every month.',
-    tableCaption: 'Key simulated portfolio-value checkpoints and contributed capital',
+    tableCaption: (mode: string) =>
+      `Key simulated portfolio-value checkpoints and contributed capital in ${mode}`,
     periodColumn: 'Period',
   },
   results: {

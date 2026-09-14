@@ -1,4 +1,5 @@
 import type {
+  LegacySimulationConfig,
   SimulationConfig,
   SimulationConfigField,
   SimulationConfigValidationResult,
@@ -12,6 +13,7 @@ export const SIMULATION_LIMITS = Object.freeze({
   durationMonths: Object.freeze({ min: 1, max: 1_200 }),
   annualExpectedReturn: Object.freeze({ exclusiveMin: -1, max: 10 }),
   annualVolatility: Object.freeze({ min: 0, max: 5 }),
+  annualInflation: Object.freeze({ min: -0.5, max: 1 }),
   simulationCount: Object.freeze({ min: 1, max: 100_000 }),
 });
 
@@ -74,9 +76,7 @@ function validateIntegerRange(
   }
 }
 
-export function validateSimulationConfig(
-  config: SimulationConfig,
-): SimulationConfigValidationResult {
+function validateLegacyFields(config: LegacySimulationConfig): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   validateFiniteRange(
@@ -146,6 +146,28 @@ export function validateSimulationConfig(
     config.simulationCount,
     SIMULATION_LIMITS.simulationCount.min,
     SIMULATION_LIMITS.simulationCount.max,
+  );
+
+  return issues;
+}
+
+export function validateLegacySimulationConfig(
+  config: LegacySimulationConfig,
+): readonly ValidationIssue[] {
+  return Object.freeze(validateLegacyFields(config));
+}
+
+export function validateSimulationConfig(
+  config: SimulationConfig,
+): SimulationConfigValidationResult {
+  const issues = validateLegacyFields(config);
+
+  validateFiniteRange(
+    issues,
+    'annualInflation',
+    config.annualInflation,
+    SIMULATION_LIMITS.annualInflation.min,
+    SIMULATION_LIMITS.annualInflation.max,
   );
 
   if (issues.length > 0) {

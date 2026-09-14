@@ -4,6 +4,7 @@ import { ActionButton, BrandMark, NumericField, ThemeSelector } from '@marketsim
 
 import { FanChart } from './components/FanChart';
 import { SimulationResults } from './components/SimulationResults';
+import type { ValueMode } from './components/fan-chart-model';
 import { formatDuration } from './features/simulation/format';
 import {
   buildSimulationJob,
@@ -39,6 +40,7 @@ export function App({ runner }: AppProps) {
   const [assumptions, setAssumptions] = useState(initialAssumptions);
   const [assumptionErrors, setAssumptionErrors] = useState<AssumptionErrors>({});
   const [simulation, setSimulation] = useState<SimulationViewState>({ status: 'idle' });
+  const [valueMode, setValueMode] = useState<ValueMode>('nominal');
   const ownedRunner = useRef<SimulationWorkerClient | undefined>(undefined);
   const { preference, setPreference } = useTheme();
   const isRunning = simulation.status === 'running';
@@ -86,6 +88,7 @@ export function App({ runner }: AppProps) {
 
     try {
       const completed = await getRunner().run(built.job);
+      setValueMode(completed.result.config.annualInflation === 0 ? 'nominal' : 'real');
       setSimulation({ status: 'success', run: completed });
     } catch (error) {
       const payload =
@@ -231,19 +234,32 @@ export function App({ runner }: AppProps) {
                     value={assumptions.annualReturn}
                   />
                   <NumericField
-                    description={messages.assumptions.volatilityHelp}
                     disabled={isRunning}
-                    error={assumptionErrors.volatility}
-                    id="volatility"
-                    label={messages.assumptions.volatility}
-                    max={500}
-                    min={0}
-                    onChange={updateAssumption('volatility')}
+                    description={messages.assumptions.inflationHelp}
+                    error={assumptionErrors.annualInflation}
+                    id="annual-inflation"
+                    label={messages.assumptions.annualInflation}
+                    max={100}
+                    min={-50}
+                    onChange={updateAssumption('annualInflation')}
                     suffix={messages.units.percent}
                     step={0.1}
-                    value={assumptions.volatility}
+                    value={assumptions.annualInflation}
                   />
                 </div>
+                <NumericField
+                  description={messages.assumptions.volatilityHelp}
+                  disabled={isRunning}
+                  error={assumptionErrors.volatility}
+                  id="volatility"
+                  label={messages.assumptions.volatility}
+                  max={500}
+                  min={0}
+                  onChange={updateAssumption('volatility')}
+                  suffix={messages.units.percent}
+                  step={0.1}
+                  value={assumptions.volatility}
+                />
                 <NumericField
                   description={messages.assumptions.simulationCountHelp}
                   disabled={isRunning}
@@ -290,11 +306,36 @@ export function App({ runner }: AppProps) {
                 </div>
                 <p>{messages.chart.description}</p>
               </header>
-              <FanChart result={result} status={simulation.status} />
+              {result ? (
+                <div className="value-mode-panel">
+                  <div
+                    aria-label={messages.chart.valueModeLabel}
+                    className="value-mode"
+                    role="group"
+                  >
+                    <button
+                      aria-pressed={valueMode === 'nominal'}
+                      onClick={() => setValueMode('nominal')}
+                      type="button"
+                    >
+                      {messages.chart.nominalMode}
+                    </button>
+                    <button
+                      aria-pressed={valueMode === 'real'}
+                      onClick={() => setValueMode('real')}
+                      type="button"
+                    >
+                      {messages.chart.realMode}
+                    </button>
+                  </div>
+                  <p>{messages.chart.realAssumption}</p>
+                </div>
+              ) : null}
+              <FanChart mode={valueMode} result={result} status={simulation.status} />
             </section>
           </div>
 
-          <SimulationResults result={result} />
+          <SimulationResults mode={valueMode} result={result} />
         </section>
 
         <section className="method" id="method" aria-labelledby="method-title">

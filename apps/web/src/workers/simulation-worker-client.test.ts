@@ -23,6 +23,7 @@ const job: SimulationJob = {
     durationMonths: 2,
     annualExpectedReturn: 0.06,
     annualVolatility: 0.14,
+    annualInflation: 0.025,
     simulationCount: 10,
   },
 };

@@ -5,19 +5,21 @@
 MarketSim is an offline-first educational tool for exploring the range of
 outcomes produced by financial assumptions. It is being built milestone by
 milestone. The current web application runs the independently testable pure
-TypeScript simulation core in a dedicated Worker and presents inspectable real
-percentile bands and statistics without blocking React.
+TypeScript simulation core in a dedicated Worker and presents inspectable
+nominal or today's-euro percentile bands and statistics without blocking React.
 
 > MarketSim is an educational simulation tool. It does not predict future
 > market returns and does not constitute financial advice.
 
 ## Current scope
 
-Milestone 5 adds an adaptive, keyboard/touch-inspectable quantitative fan chart,
-a compact accessible checkpoint table, isolated engine and Worker profilers,
-and one measured exact-statistics optimization. The engine remains independent
-from React and browser APIs. Persistence, PWA, progress/cancellation, advanced
-models, and native shells remain deferred.
+Milestone 6 adds a deterministic annual inflation assumption, a month-0 price
+index, payment-time-deflated real contributions, parallel nominal/real results,
+and one accessible nominal/real fan-chart view. The legacy nominal model remains
+supported without reinterpretation and the engine remains independent from
+React and browser APIs. Stochastic inflation, indexed contributions,
+persistence, PWA, progress/cancellation, advanced models, and native shells
+remain deferred.
 
 ## Development
 
@@ -45,6 +47,7 @@ production build. Methodology and recorded results are in
 - `docs/architecture.md`
 - `docs/visual-direction.md`
 - `docs/simulation-model.md`
+- `docs/inflation-model.md`
 - `docs/decisions.md`
 - `docs/implementation-status.md`
 - `docs/performance-profiling.md`

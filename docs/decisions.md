@@ -503,3 +503,44 @@ the SVG.
   pointer precision, animation, or SVG accessibility.
 - A chart library remains unnecessary until a future chart type or interaction
   demonstrates capabilities this implementation cannot maintain safely.
+
+## ADR-017: Derive deterministic real values after the nominal simulation
+
+- Status: accepted
+- Date: 2026-09-14
+
+### Context
+
+MarketSim needs a purchasing-power view without changing the approved nominal
+return process, reproducibility contract, contribution timing, percentile
+definition, or bounded-memory architecture. Stochastic inflation or indexed
+cash flows would introduce additional economic assumptions and compatibility
+surface beyond Milestone 6.
+
+### Decision
+
+Add a finite effective annual deterministic inflation assumption to job schema
+2 and identify the complete model as `monthly-lognormal-inflation-v1`. Retain
+schema-1 `monthly-lognormal-v1` jobs and their result schema unchanged. Convert
+inflation geometrically with `log1p`/`expm1`, evaluate the month-0-based price
+index in closed form, and derive real aggregates from nominal aggregates using
+the positive scale `1/P[t]`.
+
+Preserve existing top-level result fields as nominal. Result schema 3 adds one
+parallel `realValues` section; each real trajectory point records its price
+index. Deflate every fixed nominal contribution at its own payment checkpoint
+when building the real contribution basis. The Worker transports the versioned
+job/result without owning any financial math, and the UI selects one nominal or
+real view of the existing fan chart.
+
+### Consequences
+
+- The nominal path loop, xoshiro128**, Box-Muller cache, month-major sample
+  order, zero-volatility behavior, Welford statistics, and Type 7 percentiles
+  remain unchanged.
+- Zero-inflation current jobs have a nominal projection exactly equal to the
+  corresponding legacy result; legacy jobs are never silently migrated.
+- Real derivation is `O(M)`, needs no second Monte Carlo run or sort, keeps
+  working memory `O(N + M)`, and keeps result/Worker payload size `O(M)`.
+- Stochastic inflation, correlated inflation, and inflation-indexed
+  contributions require separate future model and contract decisions.

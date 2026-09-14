@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateDistributionStatistics,
   calculatePercentile,
+  scaleDistributionStatistics,
   shiftDistributionStatistics,
 } from './statistics';
 
@@ -58,6 +59,37 @@ describe('calculateDistributionStatistics', () => {
     expect(() =>
       calculateDistributionStatistics([Number.MAX_VALUE, -Number.MAX_VALUE]),
     ).toThrow('Distribution statistics exceed finite numeric range.');
+  });
+
+  it('scales every location and dispersion statistic by a positive factor', () => {
+    const statistics = calculateDistributionStatistics([10, 20, 30]);
+    expect(scaleDistributionStatistics(statistics, 0.5)).toEqual({
+      min: 5,
+      max: 15,
+      mean: 10,
+      median: 10,
+      standardDeviation: statistics.standardDeviation * 0.5,
+      percentiles: Object.fromEntries(
+        Object.entries(statistics.percentiles).map(([key, value]) => [
+          key,
+          value * 0.5,
+        ]),
+      ),
+    });
+  });
+
+  it('rejects invalid or overflowing distribution scales', () => {
+    const statistics = calculateDistributionStatistics([1, 2, 3]);
+    expect(() => scaleDistributionStatistics(statistics, 0)).toThrow(RangeError);
+    expect(() => scaleDistributionStatistics(statistics, Number.NaN)).toThrow(
+      RangeError,
+    );
+    expect(() =>
+      scaleDistributionStatistics(
+        calculateDistributionStatistics([Number.MAX_VALUE]),
+        2,
+      ),
+    ).toThrow('Scaled distribution statistics exceed finite numeric range.');
   });
 
   it('preserves the legacy numeric-array result after the typed-array optimization', () => {

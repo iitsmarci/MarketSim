@@ -24,6 +24,7 @@ const job: SimulationJob = {
     durationMonths: 24,
     annualExpectedReturn: 0.065,
     annualVolatility: 0.14,
+    annualInflation: 0.025,
     simulationCount: 64,
   },
 };
@@ -57,6 +58,29 @@ describe('fan chart quantitative model', () => {
       const values = PERCENTILE_KEYS.map((key) => point.percentiles[key]);
       expect(values).toEqual([...values].sort((left, right) => left - right));
     }
+  });
+
+  it('maps the real fan and separately deflated contribution basis', () => {
+    const result = simulate(job);
+    const model = buildFanChartModel(result, 'real');
+    const realPoint = result.realValues.trajectory[13];
+    const nominalPoint = result.trajectory[13];
+
+    expect(realPoint).toBeDefined();
+    expect(nominalPoint).toBeDefined();
+    if (!realPoint || !nominalPoint) {
+      return;
+    }
+
+    expect(model.percentilePoints.p50[13]?.y).toBe(
+      model.yForValue(realPoint.percentiles.p50),
+    );
+    expect(model.contributionPoints[13]?.y).toBe(
+      model.yForValue(realPoint.moneyContributed),
+    );
+    expect(realPoint.moneyContributed).not.toBe(
+      nominalPoint.moneyContributed / realPoint.priceIndex,
+    );
   });
 
   it.each([

@@ -2,12 +2,16 @@ import { cpus, totalmem } from 'node:os';
 import { performance } from 'node:perf_hooks';
 
 import {
+  LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION,
+  LEGACY_SIMULATION_JOB_SCHEMA_VERSION,
   MONTHLY_LOGNORMAL_MODEL_VERSION,
   PERCENTILE_KEYS,
   PERCENTILE_PROBABILITIES,
   SIMULATION_JOB_SCHEMA_VERSION,
   validateSimulationJob,
   type DistributionStatistics,
+  type LegacySimulationJob,
+  type LegacySimulationResult,
   type SimulationJob,
   type SimulationResult,
 } from '@marketsim/domain';
@@ -44,7 +48,9 @@ interface MemorySample {
 
 interface CountProfile {
   readonly simulationCount: number;
+  readonly legacyFullSimulation: TimingSummary;
   readonly fullSimulation: TimingSummary;
+  readonly inflationOverheadPercent: number;
   readonly memoryDeltas: readonly MemorySample[];
   readonly serializedResultBytes: number;
   readonly stages: {
@@ -115,6 +121,23 @@ function createJob(simulationCount: number): SimulationJob {
       durationMonths: DURATION_MONTHS,
       annualExpectedReturn: 0.065,
       annualVolatility: 0.14,
+      annualInflation: 0.025,
+      simulationCount,
+    }),
+  });
+}
+
+function createLegacyJob(simulationCount: number): LegacySimulationJob {
+  return Object.freeze({
+    schemaVersion: LEGACY_SIMULATION_JOB_SCHEMA_VERSION,
+    modelVersion: LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION,
+    seed: PROFILE_SEED,
+    config: Object.freeze({
+      initialCapital: 25_000,
+      monthlyContribution: 750,
+      durationMonths: DURATION_MONTHS,
+      annualExpectedReturn: 0.065,
+      annualVolatility: 0.14,
       simulationCount,
     }),
   });
@@ -170,6 +193,7 @@ function buildTrajectoryShell(
 
 function profileCount(simulationCount: number): CountProfile {
   const job = createJob(simulationCount);
+  const legacyJob = createLegacyJob(simulationCount);
   const values = createDistributionValues(simulationCount);
   const sortedValues = Float64Array.from(values).sort();
   const statistics = calculateDistributionStatistics(values);
@@ -249,10 +273,17 @@ function profileCount(simulationCount: number): CountProfile {
   );
 
   const runtime = globalThis as RuntimeWithGc;
+  const legacyFullSamples: number[] = [];
   const fullSamples: number[] = [];
   const memoryDeltas: MemorySample[] = [];
   let latestResult: Readonly<SimulationResult> | undefined;
   for (let repetition = 0; repetition < FULL_RUN_REPETITIONS; repetition += 1) {
+    runtime.gc?.();
+    const legacyStartedAt = performance.now();
+    const legacyResult: Readonly<LegacySimulationResult> = simulate(legacyJob);
+    legacyFullSamples.push(performance.now() - legacyStartedAt);
+    profilingSink += legacyResult.finalValueStatistics.mean;
+
     runtime.gc?.();
     const memoryBefore = process.memoryUsage();
     const startedAt = performance.now();
@@ -282,10 +313,16 @@ function profileCount(simulationCount: number): CountProfile {
     JSON.stringify(resultForSerialization),
     'utf8',
   );
+  const legacyFullSimulation = summarize(legacyFullSamples);
+  const fullSimulation = summarize(fullSamples);
 
   return Object.freeze({
     simulationCount,
-    fullSimulation: summarize(fullSamples),
+    legacyFullSimulation,
+    fullSimulation,
+    inflationOverheadPercent: round(
+      (fullSimulation.medianMs / legacyFullSimulation.medianMs - 1) * 100,
+    ),
     memoryDeltas: Object.freeze(memoryDeltas),
     serializedResultBytes,
     stages: Object.freeze({
@@ -312,6 +349,7 @@ function profileCount(simulationCount: number): CountProfile {
 
 describe('simulation performance profile', () => {
   it('records isolated stage and full-pipeline timings', () => {
+    simulate(createLegacyJob(2_000));
     simulate(createJob(2_000));
 
     const cpuList = cpus();
@@ -323,9 +361,11 @@ describe('simulation performance profile', () => {
         durationMonths: DURATION_MONTHS,
         fullRunRepetitions: FULL_RUN_REPETITIONS,
         stageRepetitions: STAGE_REPETITIONS,
-        warmup: 'One 2,000-path full simulation with the same 120-month configuration.',
+        warmup:
+          'One legacy and one inflation-aware 2,000-path full simulation with the same 120-month nominal configuration.',
         notes: [
-          'All counts use identical assumptions, duration, seed, model and randomness versions.',
+          'Legacy and inflation-aware runs use identical nominal assumptions, duration and seed; the M6 job adds 2.5% deterministic annual inflation.',
+          'The legacy run executes the M5 result contract, while the inflation-aware run derives the parallel real-value result after the unchanged nominal pass.',
           'Stage timings intentionally overlap; they explain cost centers and do not sum to the full run.',
           'Memory deltas are post-run observations after explicit pre-run GC, not peak-heap measurements.',
           'Analytical memory values are lower bounds for principal numeric buffers.',
@@ -348,6 +388,9 @@ describe('simulation performance profile', () => {
     );
 
     expect(profiles).toHaveLength(SAMPLE_COUNTS.length);
+    expect(profiles.every((profile) => profile.legacyFullSimulation.minMs > 0)).toBe(
+      true,
+    );
     expect(profiles.every((profile) => profile.fullSimulation.minMs > 0)).toBe(true);
     expect(
       profiles.every((profile) => profile.memoryModel.rawPathsRetained === false),

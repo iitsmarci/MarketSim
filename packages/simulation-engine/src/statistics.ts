@@ -123,3 +123,37 @@ export function shiftDistributionStatistics(
     percentiles: Object.freeze(shiftedPercentiles),
   });
 }
+
+export function scaleDistributionStatistics(
+  statistics: DistributionStatistics,
+  scale: number,
+): Readonly<DistributionStatistics> {
+  if (!Number.isFinite(scale) || scale <= 0) {
+    throw new RangeError('scale must be a finite positive number.');
+  }
+
+  const scaledPercentiles = Object.fromEntries(
+    PERCENTILE_KEYS.map((key) => [key, statistics.percentiles[key] * scale]),
+  ) as Record<(typeof PERCENTILE_KEYS)[number], number>;
+  const scaled = {
+    min: statistics.min * scale,
+    max: statistics.max * scale,
+    mean: statistics.mean * scale,
+    median: statistics.median * scale,
+    standardDeviation: statistics.standardDeviation * scale,
+    percentiles: Object.freeze(scaledPercentiles),
+  };
+
+  if (
+    !Number.isFinite(scaled.min) ||
+    !Number.isFinite(scaled.max) ||
+    !Number.isFinite(scaled.mean) ||
+    !Number.isFinite(scaled.median) ||
+    !Number.isFinite(scaled.standardDeviation) ||
+    PERCENTILE_KEYS.some((key) => !Number.isFinite(scaled.percentiles[key]))
+  ) {
+    throw new RangeError('Scaled distribution statistics exceed finite numeric range.');
+  }
+
+  return Object.freeze(scaled);
+}

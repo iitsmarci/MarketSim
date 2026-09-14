@@ -56,6 +56,7 @@ function createJob(simulationCount: number): SimulationJob {
       durationMonths: DURATION_MONTHS,
       annualExpectedReturn: 0.065,
       annualVolatility: 0.14,
+      annualInflation: 0.025,
       simulationCount,
     },
   };

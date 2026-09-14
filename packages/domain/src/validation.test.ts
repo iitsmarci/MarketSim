@@ -9,6 +9,7 @@ const validConfig: SimulationConfig = {
   durationMonths: 360,
   annualExpectedReturn: 0.06,
   annualVolatility: 0.15,
+  annualInflation: 0.025,
   simulationCount: 10_000,
 };
 
@@ -28,6 +29,11 @@ describe('validateSimulationConfig', () => {
     ['annualExpectedReturn', -1, 'at_or_below_minimum'],
     ['annualExpectedReturn', 10.1, 'above_maximum'],
     ['annualVolatility', -0.01, 'below_minimum'],
+    ['annualInflation', -0.500_001, 'below_minimum'],
+    ['annualInflation', 1.000_001, 'above_maximum'],
+    ['annualInflation', Number.NaN, 'not_finite'],
+    ['annualInflation', Number.POSITIVE_INFINITY, 'not_finite'],
+    ['annualInflation', Number.NEGATIVE_INFINITY, 'not_finite'],
     ['simulationCount', 0, 'below_minimum'],
     ['simulationCount', 2.5, 'not_integer'],
   ] as const)('rejects %s=%s with %s', (field, value, code) => {
@@ -48,6 +54,12 @@ describe('validateSimulationConfig', () => {
     });
 
     expect(result.valid).toBe(true);
+  });
+
+  it.each([-0.5, 0, 1])('accepts annual inflation boundary value %s', (value) => {
+    expect(
+      validateSimulationConfig({ ...validConfig, annualInflation: value }).valid,
+    ).toBe(true);
   });
 
   it('reports multiple independent issues in one pass', () => {

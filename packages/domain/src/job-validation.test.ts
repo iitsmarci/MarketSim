@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION,
+  LEGACY_SIMULATION_JOB_SCHEMA_VERSION,
   MONTHLY_LOGNORMAL_MODEL_VERSION,
   SIMULATION_JOB_SCHEMA_VERSION,
+  type LegacySimulationJob,
   type SimulationConfig,
   type SimulationJob,
 } from './contracts';
-import { validateSimulationJob, validateSimulationSeed } from './job-validation';
+import {
+  validateLegacySimulationJob,
+  validateSimulationJob,
+  validateSimulationSeed,
+  validateSupportedSimulationJob,
+} from './job-validation';
 
 const validConfig: SimulationConfig = {
   initialCapital: 10_000,
@@ -14,6 +22,7 @@ const validConfig: SimulationConfig = {
   durationMonths: 120,
   annualExpectedReturn: 0.06,
   annualVolatility: 0.18,
+  annualInflation: 0.025,
   simulationCount: 1_000,
 };
 
@@ -85,5 +94,26 @@ describe('validateSimulationJob', () => {
         'durationMonths',
       ]);
     }
+  });
+
+  it('retains the legacy schema and model without adding inflation', () => {
+    const legacyJob: LegacySimulationJob = {
+      schemaVersion: LEGACY_SIMULATION_JOB_SCHEMA_VERSION,
+      modelVersion: LEGACY_MONTHLY_LOGNORMAL_MODEL_VERSION,
+      seed: validJob.seed,
+      config: {
+        initialCapital: validConfig.initialCapital,
+        monthlyContribution: validConfig.monthlyContribution,
+        durationMonths: validConfig.durationMonths,
+        annualExpectedReturn: validConfig.annualExpectedReturn,
+        annualVolatility: validConfig.annualVolatility,
+        simulationCount: validConfig.simulationCount,
+      },
+    };
+
+    const result = validateLegacySimulationJob(legacyJob);
+    expect(result).toEqual({ valid: true, value: legacyJob, issues: [] });
+    expect(validateSupportedSimulationJob(legacyJob)).toEqual(result);
+    expect('annualInflation' in legacyJob.config).toBe(false);
   });
 });

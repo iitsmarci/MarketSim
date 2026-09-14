@@ -2,17 +2,20 @@ import type { SimulationResult } from '@marketsim/domain';
 
 import { formatCurrency } from '../features/simulation/format';
 import { messages } from '../i18n/en';
+import type { ValueMode } from './fan-chart-model';
 
 interface SimulationResultsProps {
+  mode: ValueMode;
   result?: SimulationResult | undefined;
 }
 
-export function SimulationResults({ result }: SimulationResultsProps) {
-  const finalStatistics = result?.finalValueStatistics;
-  const growthStatistics = result?.investmentGrowthStatistics;
+export function SimulationResults({ mode, result }: SimulationResultsProps) {
+  const selectedResult = result && mode === 'real' ? result.realValues : result;
+  const finalStatistics = selectedResult?.finalValueStatistics;
+  const growthStatistics = selectedResult?.investmentGrowthStatistics;
   const primaryResults = [
     [messages.results.finalValue, finalStatistics?.median],
-    [messages.results.contributed, result?.contributions.totalContributions],
+    [messages.results.contributed, selectedResult?.contributions.totalContributions],
     [messages.results.growth, growthStatistics?.median],
   ] as const;
   const percentiles = [
@@ -30,8 +33,12 @@ export function SimulationResults({ result }: SimulationResultsProps) {
       <header className="results-region__header">
         <p className="eyebrow">03 · Results</p>
         <h3 id="results-title">{messages.results.title}</h3>
+        <span className="results-region__basis">{messages.valueModes[mode]}</span>
       </header>
-      <dl aria-label={messages.results.label} className="results-strip">
+      <dl
+        aria-label={`${messages.results.label} · ${messages.valueModes[mode]}`}
+        className="results-strip"
+      >
         {primaryResults.map(([label, value]) => (
           <div className="result" key={label}>
             <dt>{label}</dt>
@@ -42,7 +49,10 @@ export function SimulationResults({ result }: SimulationResultsProps) {
           </div>
         ))}
       </dl>
-      <dl aria-label={messages.results.percentileLabel} className="percentile-strip">
+      <dl
+        aria-label={`${messages.results.percentileLabel} · ${messages.valueModes[mode]}`}
+        className="percentile-strip"
+      >
         {percentiles.map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>

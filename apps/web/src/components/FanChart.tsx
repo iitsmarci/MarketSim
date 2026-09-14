@@ -19,9 +19,12 @@ import {
   buildFanChartModel,
   linePath,
   nearestTrajectoryPoint,
+  trajectoryForMode,
+  type ValueMode,
 } from './fan-chart-model';
 
 interface FanChartProps {
+  mode: ValueMode;
   result?: SimulationResult | undefined;
   status: 'idle' | 'running' | 'error' | 'success';
 }
@@ -36,14 +39,26 @@ const percentileLabels: Readonly<Record<PercentileKey, string>> = Object.freeze(
   p95: 'P95',
 });
 
-function PopulatedFanChart({ result }: { readonly result: SimulationResult }) {
-  const model = buildFanChartModel(result);
+function PopulatedFanChart({
+  mode,
+  result,
+}: {
+  readonly mode: ValueMode;
+  readonly result: SimulationResult;
+}) {
+  const model = buildFanChartModel(result, mode);
+  const trajectory = trajectoryForMode(result, mode);
   const [selectedMonth, setSelectedMonth] = useState(model.finalMonth);
-  const selectedPoint = nearestTrajectoryPoint(result.trajectory, selectedMonth);
+  const selectedPoint = nearestTrajectoryPoint(trajectory, selectedMonth);
   const selectedX = model.xForMonth(selectedPoint.month);
-  const finalMedian = result.finalValueStatistics.percentiles.p50;
-  const finalLow = result.finalValueStatistics.percentiles.p05;
-  const finalHigh = result.finalValueStatistics.percentiles.p95;
+  const finalStatistics =
+    mode === 'real'
+      ? result.realValues.finalValueStatistics
+      : result.finalValueStatistics;
+  const finalMedian = finalStatistics.percentiles.p50;
+  const finalLow = finalStatistics.percentiles.p05;
+  const finalHigh = finalStatistics.percentiles.p95;
+  const modeLabel = messages.valueModes[mode];
 
   const inspectPointer = (event: PointerEvent<SVGSVGElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -121,9 +136,10 @@ function PopulatedFanChart({ result }: { readonly result: SimulationResult }) {
           role="img"
           viewBox={`0 0 ${String(FAN_CHART_VIEWBOX.width)} ${String(FAN_CHART_VIEWBOX.height)}`}
         >
-          <title id="fan-chart-title">{messages.chart.ariaLabel}</title>
+          <title id="fan-chart-title">{messages.chart.ariaLabel(modeLabel)}</title>
           <desc id="fan-chart-description">
             {messages.chart.ariaDescription(
+              modeLabel,
               model.finalMonth,
               formatCurrency(finalMedian),
               formatCurrency(finalLow),
@@ -249,7 +265,7 @@ function PopulatedFanChart({ result }: { readonly result: SimulationResult }) {
           <h4 id="fan-chart-inspector-title">
             {formatSimulationPeriod(selectedPoint.month)}
           </h4>
-          <span>{messages.chart.inspectorDescription}</span>
+          <span>{messages.chart.inspectorDescription(modeLabel)}</span>
         </header>
         <dl>
           {PERCENTILE_KEYS.map((key) => (
@@ -265,6 +281,7 @@ function PopulatedFanChart({ result }: { readonly result: SimulationResult }) {
         <span>{messages.chart.note(result.config.simulationCount)}</span>
         <span>
           {messages.chart.finalRange(
+            modeLabel,
             formatCurrency(finalLow),
             formatCurrency(finalHigh),
           )}
@@ -276,7 +293,7 @@ function PopulatedFanChart({ result }: { readonly result: SimulationResult }) {
         <p>{messages.chart.tableDescription}</p>
         <div className="fan-chart__table-scroll">
           <table>
-            <caption>{messages.chart.tableCaption}</caption>
+            <caption>{messages.chart.tableCaption(modeLabel)}</caption>
             <thead>
               <tr>
                 <th scope="col">{messages.chart.periodColumn}</th>
@@ -306,7 +323,7 @@ function PopulatedFanChart({ result }: { readonly result: SimulationResult }) {
   );
 }
 
-export function FanChart({ result, status }: FanChartProps) {
+export function FanChart({ mode, result, status }: FanChartProps) {
   if (!result) {
     return (
       <figure className="fan-chart fan-chart--empty">
@@ -326,7 +343,8 @@ export function FanChart({ result, status }: FanChartProps) {
 
   return (
     <PopulatedFanChart
-      key={`${result.seed}-${String(result.config.durationMonths)}`}
+      key={`${result.seed}-${String(result.config.durationMonths)}-${mode}`}
+      mode={mode}
       result={result}
     />
   );

@@ -1,6 +1,7 @@
 import { validateSimulationJob } from '@marketsim/domain';
 import {
   InvalidRandomSampleError,
+  SimulationDerivedValueError,
   SimulationNumericalError,
   SimulationValidationError,
   simulate,
@@ -65,6 +66,18 @@ export function serializeSimulationError(error: unknown): SimulationWorkerError 
         name: error.name,
         month: error.month,
         pathIndex: error.pathIndex,
+      },
+    };
+  }
+
+  if (error instanceof SimulationDerivedValueError) {
+    return {
+      code: 'numerical_error',
+      message: 'The selected assumptions exceeded the supported numeric range.',
+      technical: {
+        name: error.name,
+        month: error.month,
+        quantity: error.quantity,
       },
     };
   }

@@ -33,6 +33,7 @@ const fixtureJob: SimulationJob = {
     durationMonths: 12,
     annualExpectedReturn: 0.065,
     annualVolatility: 0.14,
+    annualInflation: 0.025,
     simulationCount: 32,
   },
 };
@@ -97,6 +98,7 @@ describe('MarketSim simulation workspace', () => {
         durationMonths: 180,
         annualExpectedReturn: 0.0725,
         annualVolatility: 0.185,
+        annualInflation: 0.025,
         simulationCount: 50_000,
       },
     });
@@ -127,13 +129,17 @@ describe('MarketSim simulation workspace', () => {
     await act(async () => resolveRun?.(fixtureRun));
   });
 
-  it('renders real result values and every requested percentile', async () => {
+  it("defaults non-zero inflation results to today's euros", async () => {
     render(<App runner={successfulRunner()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Run simulation' }));
 
-    const percentileList = await screen.findByLabelText('Final value percentiles');
-    const primaryResults = screen.getByLabelText('Key simulation results');
-    const final = fixtureRun.result.finalValueStatistics;
+    const percentileList = await screen.findByLabelText(
+      "Final value percentiles · Today's euros",
+    );
+    const primaryResults = screen.getByLabelText(
+      "Key simulation results · Today's euros",
+    );
+    const final = fixtureRun.result.realValues.finalValueStatistics;
     await waitFor(() =>
       expect(
         within(primaryResults).getByText(formatCurrency(final.median)),
@@ -141,7 +147,7 @@ describe('MarketSim simulation workspace', () => {
     );
     expect(
       within(primaryResults).getByText(
-        formatCurrency(fixtureRun.result.contributions.totalContributions),
+        formatCurrency(fixtureRun.result.realValues.contributions.totalContributions),
       ),
     ).toBeVisible();
     for (const [label, value] of [
@@ -157,6 +163,55 @@ describe('MarketSim simulation workspace', () => {
       expect(item).toHaveTextContent(formatCurrency(value));
     }
     expect(screen.getByRole('img', { name: /fan chart of simulated/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Real' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('switches the chart, table, and result strip between real and nominal values', async () => {
+    render(<App runner={successfulRunner()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Run simulation' }));
+
+    const nominalButton = await screen.findByRole('button', { name: 'Nominal' });
+    fireEvent.click(nominalButton);
+
+    expect(nominalButton).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('img', { name: /in Nominal euros/i })).toBeVisible();
+    const results = screen.getByLabelText('Key simulation results · Nominal euros');
+    expect(
+      within(results).getByText(
+        formatCurrency(fixtureRun.result.finalValueStatistics.median),
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        'Key simulated portfolio-value checkpoints and contributed capital in Nominal euros',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('defaults a zero-inflation result to nominal while keeping real data equal', async () => {
+    const zeroInflationJob: SimulationJob = {
+      ...fixtureJob,
+      config: { ...fixtureJob.config, annualInflation: 0 },
+    };
+    const zeroInflationRun: SimulationRunResult = {
+      ...fixtureRun,
+      result: simulate(zeroInflationJob),
+    };
+    const runner = new RecordingRunner(() => Promise.resolve(zeroInflationRun));
+    render(<App runner={runner} />);
+    fireEvent.change(screen.getByLabelText('Annual inflation assumption'), {
+      target: { value: '0' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run simulation' }));
+
+    const nominalButton = await screen.findByRole('button', { name: 'Nominal' });
+    expect(nominalButton).toHaveAttribute('aria-pressed', 'true');
+    expect(zeroInflationRun.result.realValues.finalValueStatistics).toEqual(
+      zeroInflationRun.result.finalValueStatistics,
+    );
   });
 
   it('offers keyboard-equivalent period inspection with all seven values', async () => {
@@ -175,7 +230,7 @@ describe('MarketSim simulation workspace', () => {
     expect(slider).toHaveAttribute('aria-valuetext', '5 mo');
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
     expect(slider).toHaveAttribute('aria-valuetext', '6 mo');
-    const selected = fixtureRun.result.trajectory[6];
+    const selected = fixtureRun.result.realValues.trajectory[6];
     expect(selected).toBeDefined();
     if (!selected) {
       return;
@@ -266,11 +321,13 @@ describe('MarketSim simulation workspace', () => {
     render(<App runner={runner} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Run simulation' }));
-    const primaryResults = await screen.findByLabelText('Key simulation results');
+    const primaryResults = await screen.findByLabelText(
+      "Key simulation results · Today's euros",
+    );
     await waitFor(() =>
       expect(
         within(primaryResults).getByText(
-          formatCurrency(fixtureRun.result.finalValueStatistics.median),
+          formatCurrency(fixtureRun.result.realValues.finalValueStatistics.median),
         ),
       ).toBeVisible(),
     );
@@ -280,7 +337,7 @@ describe('MarketSim simulation workspace', () => {
     });
     expect(
       within(primaryResults).queryByText(
-        formatCurrency(fixtureRun.result.finalValueStatistics.median),
+        formatCurrency(fixtureRun.result.realValues.finalValueStatistics.median),
       ),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Run simulation' }));
@@ -288,7 +345,7 @@ describe('MarketSim simulation workspace', () => {
     await waitFor(() =>
       expect(
         within(primaryResults).getByText(
-          formatCurrency(secondRun.result.finalValueStatistics.median),
+          formatCurrency(secondRun.result.realValues.finalValueStatistics.median),
         ),
       ).toBeVisible(),
     );
@@ -311,6 +368,24 @@ describe('MarketSim simulation workspace', () => {
       'true',
     );
     expect(runner.jobs).toHaveLength(0);
+  });
+
+  it('accepts negative inflation and exposes inflation validation accessibly', async () => {
+    const runner = successfulRunner();
+    render(<App runner={runner} />);
+    const input = screen.getByLabelText('Annual inflation assumption');
+
+    fireEvent.change(input, { target: { value: '-5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Run simulation' }));
+    await waitFor(() => expect(runner.jobs).toHaveLength(1));
+    expect(runner.jobs[0]?.config.annualInflation).toBe(-0.05);
+
+    fireEvent.change(input, { target: { value: '-50.1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Run simulation' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'highlighted assumptions',
+    );
+    expect(input).toHaveAttribute('aria-invalid', 'true');
   });
 
   it('keeps the educational disclaimer and accessible theme selection', () => {

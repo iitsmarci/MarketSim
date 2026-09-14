@@ -5,7 +5,10 @@ import {
   SIMULATION_JOB_SCHEMA_VERSION,
   type SimulationJob,
 } from '@marketsim/domain';
-import { SimulationNumericalError } from '@marketsim/simulation-engine';
+import {
+  SimulationDerivedValueError,
+  SimulationNumericalError,
+} from '@marketsim/simulation-engine';
 
 import {
   executeSimulationWorkerRequest,
@@ -24,6 +27,7 @@ const job: SimulationJob = {
     durationMonths: 12,
     annualExpectedReturn: 0.06,
     annualVolatility: 0.14,
+    annualInflation: 0.025,
     simulationCount: 100,
   },
 };
@@ -39,6 +43,10 @@ describe('simulation worker adapter', () => {
     expect(first).toMatchObject({
       metrics: { validationDurationMs: 0, simulationDurationMs: 0 },
     });
+    if (first.type === 'completed') {
+      expect(first.result.realValues.trajectory).toHaveLength(13);
+      expect(first.result.config.annualInflation).toBe(0.025);
+    }
   });
 
   it('returns structured validation details instead of only a message', () => {
@@ -77,6 +85,20 @@ describe('simulation worker adapter', () => {
       },
     });
     expect(serialized.technical).not.toHaveProperty('stack');
+  });
+
+  it('serializes derived-value failures as structured numerical errors', () => {
+    expect(
+      serializeSimulationError(new SimulationDerivedValueError(12, 'price index')),
+    ).toEqual({
+      code: 'numerical_error',
+      message: 'The selected assumptions exceeded the supported numeric range.',
+      technical: {
+        name: 'SimulationDerivedValueError',
+        month: 12,
+        quantity: 'price index',
+      },
+    });
   });
 
   it('rejects malformed protocol messages with a stable response', () => {

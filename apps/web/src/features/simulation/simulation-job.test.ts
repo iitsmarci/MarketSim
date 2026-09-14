@@ -9,6 +9,7 @@ import {
 describe('buildSimulationJob', () => {
   it('converts UI years and percentages to explicit domain units', () => {
     const result = buildSimulationJob({
+      annualInflation: '2.5',
       annualReturn: '7.25',
       horizonYears: '15',
       initialCapital: '12500',
@@ -27,6 +28,7 @@ describe('buildSimulationJob', () => {
           durationMonths: 180,
           annualExpectedReturn: 0.0725,
           annualVolatility: 0.185,
+          annualInflation: 0.025,
           simulationCount: 50_000,
         },
       });
@@ -48,6 +50,26 @@ describe('buildSimulationJob', () => {
         horizonYears: expect.any(String),
         simulationCount: expect.any(String),
       });
+    }
+  });
+
+  it('maps negative annual inflation and rejects unsupported values', () => {
+    const valid = buildSimulationJob({
+      ...initialAssumptions,
+      annualInflation: '-2.5',
+    });
+    expect(valid.valid).toBe(true);
+    if (valid.valid) {
+      expect(valid.job.config.annualInflation).toBe(-0.025);
+    }
+
+    const invalid = buildSimulationJob({
+      ...initialAssumptions,
+      annualInflation: '100.1',
+    });
+    expect(invalid.valid).toBe(false);
+    if (!invalid.valid) {
+      expect(invalid.errors.annualInflation).toContain('at most 1');
     }
   });
 });
