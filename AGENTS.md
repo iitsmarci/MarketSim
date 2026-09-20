@@ -31,6 +31,10 @@ local by default.
 - Milestone 6 (deterministic inflation and real values) is complete. Its
   real-browser QA matrix remains explicitly unverified because the available
   browser environment could not access the local Vite server.
+- Milestone 7 (what-if scenario comparison) is complete. It keeps paired
+  scenario drafts and exact comparison presentation inside `apps/web`; its
+  real-browser QA matrix remains explicitly unverified because the available
+  browser environment blocked the local Vite server.
 - The starting directory was empty and was not a Git repository.
 - Git is initialized on `main`; the initial baseline commit captures the
   approved Milestone 0-5 implementation.
@@ -54,9 +58,12 @@ local by default.
   ambient-randomness fallback.
 - `apps/web` owns a typed module Worker boundary, lifecycle/error state,
   inspectable nominal/real percentile fan chart, adaptive accessible checkpoint
-  table, and matching final results. React does not execute the engine on the main thread.
-  Worker metrics separate startup, dispatch, validation, engine, response, and
-  total duration.
+  table, and matching final results. Its application-level scenario workflow
+  runs independently editable A/B assumptions with shared seed, model, and path
+  count. The same Worker runs A and then B; synchronized small multiples and
+  semantic tables present nominal/real A/B/delta values through each independent
+  horizon. React does not execute the engine on the main thread. Worker metrics
+  separate startup, dispatch, validation, engine, response, and total duration.
 - Engine and real-Worker profilers are isolated from ordinary tests. See
   `docs/performance-profiling.md` for fixed-job 10k/50k/100k measurements,
   memory complexity, bottleneck evidence, and limitations.

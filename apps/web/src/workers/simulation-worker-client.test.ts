@@ -82,4 +82,45 @@ describe('SimulationWorkerClient performance boundary', () => {
       },
     });
   });
+
+  it('reuses one Worker client for sequential scenario requests', async () => {
+    const worker = new FakeWorker();
+    const client = new SimulationWorkerClient(worker, () => 10);
+    const scenarioBJob: SimulationJob = {
+      ...job,
+      config: { ...job.config, initialCapital: 20_000 },
+    };
+
+    const scenarioAPending = client.run(job);
+    const requestA = worker.messages[0];
+    if (!requestA) {
+      return;
+    }
+
+    worker.emit({
+      type: 'completed',
+      requestId: requestA.requestId,
+      result: simulate(job),
+      metrics: { validationDurationMs: 1, simulationDurationMs: 2 },
+    });
+    await expect(scenarioAPending).resolves.toMatchObject({
+      result: { config: { initialCapital: 10_000 } },
+    });
+
+    const scenarioBPending = client.run(scenarioBJob);
+    const requestB = worker.messages[1];
+    expect(requestA.requestId).not.toBe(requestB?.requestId);
+    if (!requestB) {
+      return;
+    }
+    worker.emit({
+      type: 'completed',
+      requestId: requestB.requestId,
+      result: simulate(scenarioBJob),
+      metrics: { validationDurationMs: 1, simulationDurationMs: 2 },
+    });
+    await expect(scenarioBPending).resolves.toMatchObject({
+      result: { config: { initialCapital: 20_000 } },
+    });
+  });
 });

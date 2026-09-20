@@ -221,6 +221,30 @@ restrained palette, direct labels, visible focus, reduced-motion rule, and
 44 px-class controls; it introduces no gradients, chart library, or decorative
 statistics.
 
+### What-if comparison implemented in Milestone 7
+
+- Scenario A and Scenario B controls are separated by labeled fieldsets and
+  restrained dividers, not nested dashboard cards. Each owns its horizon; seed,
+  model, and path count form a third explicit shared group.
+- Synchronized A/B small multiples preserve the fan chart as the focal
+  instrument without overlapping two complete distributions. Both panels use
+  one scale and selection, retain all three nested bands, P50, and contributions,
+  and stop at their own horizons. Panel labels and solid/dashed panel edges make
+  scenario identity independent of color.
+- The selected-month table is the authoritative precise view for total
+  contributed and all seven percentiles, with explicit A, B, and `B - A`
+  columns. A separate final table labels each endpoint and calculates deltas at
+  the maximum common horizon. A collapsible temporal table contains exact
+  adaptive checkpoints, including that common horizon; unavailable values use a
+  dash.
+- Pointer and keyboard inspection select exact monthly observations. The chart
+  introduces no smoothing or interpolation, and controls preserve 44 px-class
+  targets and visible focus.
+- On narrow screens scenario groups follow the existing vertical narrative;
+  wide numeric tables own their horizontal scrolling so they do not force page
+  overflow. Browser verification status is recorded separately in
+  `docs/implementation-status.md`.
+
 ## Information hierarchy
 
 The reading order is:

@@ -1,11 +1,11 @@
 # MarketSim architecture
 
-Status: accepted architecture. Milestones 1 through 6 implement the npm
+Status: accepted architecture. Milestones 1 through 7 implement the npm
 workspace, React/Vite web application, focused UI package, domain contracts,
 synchronous deterministic engine, seeded randomness, browser Worker boundary,
 the first real simulation workflow, quantitative chart inspection, and measured
-performance tooling, deterministic inflation, and parallel nominal/real
-results. Storage, PWA, desktop, and mobile
+performance tooling, deterministic inflation, parallel nominal/real results,
+and paired what-if scenario comparison. Storage, PWA, desktop, and mobile
 layers remain targets rather than implemented components.
 
 ## Goals
@@ -285,6 +285,14 @@ random source, second Monte Carlo pass, or raw-path transfer. A same-process
 legacy/new benchmark isolates the measured cost of deriving real aggregates;
 the result payload remains `O(M)`.
 
+Milestone 7 validates both ordinary jobs before dispatch, then reuses one
+`SimulationWorkerClient` to await Scenario A before dispatching Scenario B. The
+explicit sequence bounds active engine work to one run and exposes distinct
+running-A/running-B states. A validation failure dispatches neither job; an
+execution failure is attributed to the active scenario. No new Worker message,
+engine entry point, batching behavior, or progress/cancellation semantics are
+introduced.
+
 ## Application state
 
 Begin with local React state plus narrowly scoped context for stable app-level
@@ -292,6 +300,13 @@ services such as theme, localization, storage, and simulation runner. Do not add
 a global state library until concrete cross-feature complexity justifies it.
 Serializable scenario state may later use URL encoding only when size and
 privacy constraints permit it.
+
+Milestone 7 keeps Scenario A/B as ephemeral application drafts. Capital,
+monthly contribution, return, volatility, inflation, and horizon remain
+independent. A separate shared-settings value supplies canonical seed, model
+version, and simulation count to both jobs. Editing either draft or the shared
+path count invalidates the paired output so stale results are never presented as
+a current comparison.
 
 ## Storage and privacy
 
@@ -348,6 +363,17 @@ the payment-time-deflated contribution basis. Non-zero inflation results open
 in today's-euro mode, while zero inflation opens in nominal mode. The two modes
 reuse one chart rather than overlaying duplicate fans.
 
+Milestone 7 adds synchronized Scenario A/B small multiples with one vertical
+scale, one selected month, and separate labeled panels. Each panel retains the
+P5-P95, P10-P90, and P25-P75 bands, P50, and contribution reference, and stops
+at its own horizon. The shared timeline ends at the longer horizon and includes
+the shorter, maximum-common horizon as an explicit checkpoint. Persistent
+semantic tables expose all seven percentiles plus contributions as A, B, and
+`B - A`; unavailable values after the shorter horizon render as a dash. Deltas
+are differences between aggregate quantiles at the same month, not quantiles of
+a pathwise difference distribution. Pointer, native range, and explicit
+keyboard controls never interpolate or extrapolate financial values.
+
 ## Platform architecture
 
 ### Web and PWA
@@ -399,12 +425,14 @@ introduced when it adds coverage beyond those invariants.
 
 ### Integration and Worker tests
 
-Milestones 4 through 6 verify the Worker protocol/adapter, validation and error
+Milestones 4 through 7 verify the Worker protocol/adapter, validation and error
 serialization, same-job full-result equality at the adapter boundary, and real
 browser execution. Milestone 5 additionally verifies separated timing metrics
 and the production module-Worker profile. Milestone 6 additionally verifies
-inflation-aware results and structured derived-value failures. Progress,
-cancellation, stale-job rejection, import/export
+inflation-aware results and structured derived-value failures. Milestone 7 adds
+same-client sequential request coverage, validation-before-dispatch, distinct
+paired execution errors, and stale-result protection without changing the
+protocol. Progress, cancellation, import/export
 round trips, and schema migrations remain future integration coverage.
 
 ### UI and end-to-end tests
@@ -416,7 +444,11 @@ adds exact chart-data mapping, adaptive horizon ticks, percentile ordering,
 mouse/touch-compatible pointer inspection, explicit range-key handling, and
 accessible checkpoint coverage. Milestone 6 tests inflation input mapping and
 validation, nominal/real selection, data/table/result consistency, and the
-zero-inflation default. Automated
+zero-inflation default. Milestone 7 tests independent scenario horizons, shared
+job invariants, common seeded prefixes, explicit A-then-B execution, exact
+nominal/real A/B/deltas across all seven percentiles, maximum/common horizons,
+unavailable values without interpolation, final results, stale-result clearing,
+semantic tables, keyboard inspection, loading, and independent errors. Automated
 accessibility checks supplement manual keyboard and screen-reader smoke tests.
 
 ### Numerical and performance verification

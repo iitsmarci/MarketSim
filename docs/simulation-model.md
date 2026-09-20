@@ -391,6 +391,24 @@ random sample, balance, or aggregate statistic raises an explicit error rather
 than being formatted or returned. Currency rounding belongs to presentation or
 export policy and is never applied during compounding.
 
+## Scenario comparison does not alter the model
+
+Milestone 7 runs two ordinary current-version jobs with the same explicit seed,
+model version, monthly frequency, and simulation count; duration and every
+financial assumption may differ. The shared seed and path count apply common
+random numbers at comparable stochastic checkpoints. In particular, if only
+duration differs, the shorter nominal and real trajectories are exact prefixes
+of the longer trajectories. This reduces sampling variation between scenarios
+but does not remove Monte Carlo uncertainty.
+
+The application compares only exact stored monthly aggregates through the
+longer horizon. At a month present in both results it calculates each displayed
+delta as the aggregate value or quantile `B - A`. This is not a quantile of a
+pathwise difference distribution. After either result ends, its values and the
+delta are unavailable; the application never interpolates or extrapolates. The
+workflow adds no RNG draws, return formula, domain schema, or engine API, and
+nominal and real values retain the exact Milestone 6 definitions above.
+
 ## Explicitly deferred model scope
 
 Milestone 6 does not implement stochastic inflation, indexed contributions,

@@ -2,6 +2,7 @@ import {
   MONTHLY_LOGNORMAL_MODEL_VERSION,
   SIMULATION_JOB_SCHEMA_VERSION,
   validateSimulationJob,
+  type SimulationSeed,
   type SimulationConfigField,
   type SimulationJob,
 } from '@marketsim/domain';
@@ -17,6 +18,17 @@ export interface AssumptionValues {
 }
 
 export const DEFAULT_SIMULATION_SEED = '6d2b79f5a4c3e21791f0bc8d457e306a' as const;
+
+export interface SimulationJobBuildSettings {
+  readonly modelVersion: typeof MONTHLY_LOGNORMAL_MODEL_VERSION;
+  readonly seed: SimulationSeed;
+}
+
+export const defaultSimulationJobBuildSettings: SimulationJobBuildSettings =
+  Object.freeze({
+    modelVersion: MONTHLY_LOGNORMAL_MODEL_VERSION,
+    seed: DEFAULT_SIMULATION_SEED,
+  });
 
 export const initialAssumptions: AssumptionValues = {
   annualInflation: '2.5',
@@ -56,11 +68,12 @@ function numericValue(value: string): number {
 
 export function buildSimulationJob(
   assumptions: AssumptionValues,
+  settings: SimulationJobBuildSettings = defaultSimulationJobBuildSettings,
 ): BuildSimulationJobResult {
   const job: SimulationJob = {
     schemaVersion: SIMULATION_JOB_SCHEMA_VERSION,
-    modelVersion: MONTHLY_LOGNORMAL_MODEL_VERSION,
-    seed: DEFAULT_SIMULATION_SEED,
+    modelVersion: settings.modelVersion,
+    seed: settings.seed,
     config: {
       initialCapital: numericValue(assumptions.initialCapital),
       monthlyContribution: numericValue(assumptions.monthlyContribution),

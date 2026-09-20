@@ -544,3 +544,58 @@ real view of the existing fan chart.
   working memory `O(N + M)`, and keeps result/Worker payload size `O(M)`.
 - Stochastic inflation, correlated inflation, and inflation-indexed
   contributions require separate future model and contract decisions.
+
+## ADR-018: Compare scenarios with paired application-level jobs
+
+- Status: accepted
+- Date: 2026-09-14
+
+### Context
+
+A what-if comparison should reduce avoidable sampling variation while allowing
+the assumptions, including duration, to differ. It must not create a new
+mathematical model, persistent scenario schema, or second engine implementation.
+The approved engine and Worker already accept fully versioned deterministic
+jobs.
+
+### Decision
+
+Represent Scenario A and Scenario B as ephemeral `apps/web` assumption drafts.
+Build and validate two ordinary `SimulationJob` values. Both jobs use the
+canonical seed, model version, monthly granularity, and simulation count.
+Initial capital, monthly contribution, expected return, volatility, inflation,
+and horizon remain independently editable. Validate both jobs before dispatch;
+then use the same `SimulationWorkerClient` to await A before dispatching B.
+Publish the comparison only after both complete, preserve stale-result
+protection, and attribute structured execution errors to the active scenario.
+
+Derive comparison values only from exact monthly `SimulationResult`
+checkpoints. The shared timeline ends at `max(MA, MB)` and explicitly includes
+`min(MA, MB)`. After a scenario ends, its value and the delta are unavailable;
+never interpolate or extrapolate. Report contributed capital and
+P5/P10/P25/P50/P75/P90/P95 as A, B, and `B - A` at the same checkpoint in the
+existing nominal or real basis. This delta is a difference between aggregate
+quantiles, not a quantile of the pathwise `B - A` distribution.
+
+Use synchronized small-multiple fan charts with one scale and selection. Each
+panel stops at its own horizon and preserves nested percentile bands, P50, and
+contributions. Semantic inspector, checkpoint, and final-result tables remain
+the authoritative exact representations; panel labels and border/line styles
+supplement color.
+
+### Consequences
+
+- Common random numbers make repeated paired comparisons deterministic and
+  reduce sampling variation between comparable checkpoints; they do not remove
+  Monte Carlo uncertainty, make either outcome a forecast, or imply causal
+  certainty. When only duration differs, the shorter result is an exact prefix
+  of the longer result under the unchanged engine contract.
+- Engine formulas, RNG consumption, job/result schemas, and Worker protocol are
+  unchanged.
+- Runtime is the sum of the two sequential simulations; only one engine run is
+  active at a time, while retained aggregate results remain bounded by the two
+  horizons rather than raw path count.
+- Scenario drafts disappear on reload. Persistence, history, import/export,
+  share URLs, progress, and cancellation remain separate milestones.
+- Comparison orchestration and presentation remain application-owned; domain
+  and simulation packages gain no UI workflow concepts.

@@ -51,6 +51,91 @@ export const messages = {
     actionNote:
       'Uses an explicit fixed seed so the same assumptions reproduce exactly.',
   },
+  comparison: {
+    formTitle: 'Compare two scenarios',
+    formDescription:
+      'Change each scenario independently, including its horizon. Both runs share the same path count, seed, and model.',
+    scenarioA: 'Scenario A',
+    scenarioB: 'Scenario B',
+    shared: 'Shared reproducibility settings',
+    sharedSeed: 'Seed',
+    sharedModel: 'Model',
+    run: 'Run comparison',
+    running: 'Running comparison…',
+    actionNote:
+      'Common random numbers reduce sampling variation between the runs; they do not remove Monte Carlo uncertainty.',
+    errorTitle: (scenario: string) => `${scenario} error`,
+    statusRunningA: 'Running Scenario A',
+    statusRunningB: 'Running Scenario B',
+    statusSuccess: 'Comparison complete',
+    statusError: 'Comparison needs attention',
+    statusDescriptionA:
+      'Scenario A is running in the simulation Worker. Scenario B starts after it completes.',
+    statusDescriptionB:
+      'Scenario A is complete. Scenario B is now running in the same simulation Worker.',
+    statusDescriptionSuccess:
+      'Both seeded simulations completed with shared reproducibility settings.',
+    chartEyebrow: '02 · What-if comparison',
+    chartTitle: 'Two assumption sets, synchronized uncertainty views',
+    chartDescription:
+      'Synchronized panels use one scale and exact monthly values, without extending either scenario past its own horizon.',
+    chartLegendLabel: 'Comparison chart legend',
+    panelAriaLabel: (scenario: string, mode: string) =>
+      `${scenario} fan chart of simulated portfolio values in ${mode}`,
+    panelAriaDescription: (
+      scenario: string,
+      mode: string,
+      finalMonth: number,
+      maximumMonth: number,
+    ) =>
+      `${scenario} shows P5 through P95 outcomes in ${mode} through month ${String(finalMonth)} on a shared timeline ending at month ${String(maximumMonth)}. No values are extrapolated after the scenario horizon.`,
+    legendOuterRange: 'P5–P95',
+    legendMiddleRange: 'P10–P90',
+    legendInnerRange: 'P25–P75',
+    legendMedian: 'P50 median',
+    legendContributed: 'Contributed',
+    finalAt: (period: string) => `Final at ${period}`,
+    finalMarker: 'final',
+    inspectLabel: 'Inspect comparison period',
+    inspectorEyebrow: 'Selected comparison',
+    inspectorDescription: (mode: string) =>
+      `Exact Scenario A, Scenario B, and B minus A values in ${mode}`,
+    inspectorCaption: (period: string, mode: string) =>
+      `Scenario comparison at ${period} in ${mode}`,
+    metric: {
+      totalContributed: 'Total contributed',
+      p05: 'P5 outcome',
+      p10: 'P10 outcome',
+      p25: 'P25 outcome',
+      p50: 'P50 outcome',
+      p75: 'P75 outcome',
+      p90: 'P90 outcome',
+      p95: 'P95 outcome',
+    },
+    metricColumn: 'Metric',
+    deltaColumn: 'Delta (B − A)',
+    unavailable: '—',
+    finalsEyebrow: 'Final results',
+    finalsTitle: 'Each endpoint, plus a like-for-like delta',
+    finalsDescription: (
+      scenarioAFinal: string,
+      scenarioBFinal: string,
+      commonFinal: string,
+    ) =>
+      `Scenario A ends at ${scenarioAFinal}; Scenario B ends at ${scenarioBFinal}. Deltas use their last common checkpoint at ${commonFinal}.`,
+    finalsCaption: (mode: string) =>
+      `Final Scenario A and Scenario B values in ${mode}, with deltas at the maximum common horizon`,
+    finalColumn: (scenario: string, period: string) => `${scenario} final · ${period}`,
+    commonDeltaColumn: (period: string) => `Delta at common ${period}`,
+    tableSummary: 'Review accessible comparison checkpoints',
+    tableDescription:
+      'Checkpoints include the maximum common horizon. A dash means that a scenario has already ended; no interpolation or extrapolation is used.',
+    tableCaption: (mode: string) =>
+      `Scenario comparison checkpoints in ${mode}, including B minus A deltas`,
+    note: 'Same seed, model, and path count · common random numbers reduce sampling variation',
+    deltaNote:
+      'Each delta is quantile B minus quantile A at the same month. It is not a quantile of the pathwise B minus A distribution.',
+  },
   chart: {
     eyebrow: '02 · Uncertainty',
     title: 'Possible portfolio paths',

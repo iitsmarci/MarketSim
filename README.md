@@ -7,19 +7,22 @@ outcomes produced by financial assumptions. It is being built milestone by
 milestone. The current web application runs the independently testable pure
 TypeScript simulation core in a dedicated Worker and presents inspectable
 nominal or today's-euro percentile bands and statistics without blocking React.
+Two editable what-if scenarios can be run sequentially with common random
+numbers and compared through synchronized uncertainty views.
 
 > MarketSim is an educational simulation tool. It does not predict future
 > market returns and does not constitute financial advice.
 
 ## Current scope
 
-Milestone 6 adds a deterministic annual inflation assumption, a month-0 price
-index, payment-time-deflated real contributions, parallel nominal/real results,
-and one accessible nominal/real fan-chart view. The legacy nominal model remains
-supported without reinterpretation and the engine remains independent from
-React and browser APIs. Stochastic inflation, indexed contributions,
-persistence, PWA, progress/cancellation, advanced models, and native shells
-remain deferred.
+Milestone 7 adds application-level Scenario A/B drafts and exact what-if
+comparison for contributed capital and all seven percentiles in nominal or real
+terms. Capital, contributions, return, volatility, inflation, and horizon are
+independent; the jobs share the canonical seed, model, and path count. One
+Worker runs A and then B, and synchronized small multiples stop at each
+scenario's actual horizon. The existing engine, RNG, Worker protocol, and
+domain schemas are unchanged. Persistence, history, import/export, PWA,
+progress/cancellation, advanced models, and native shells remain deferred.
 
 ## Development
 

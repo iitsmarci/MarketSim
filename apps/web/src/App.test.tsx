@@ -69,6 +69,13 @@ function successfulRunner(): RecordingRunner {
   return new RecordingRunner(() => Promise.resolve(fixtureRun));
 }
 
+function simulatedRun(job: SimulationJob): SimulationRunResult {
+  return {
+    ...fixtureRun,
+    result: simulate(job),
+  };
+}
+
 describe('MarketSim simulation workspace', () => {
   it('builds the correct job and calls the simulation runner on submit', async () => {
     const runner = successfulRunner();
@@ -394,5 +401,281 @@ describe('MarketSim simulation workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
     expect(screen.getByText(/does not predict future market returns/i)).toBeVisible();
+  });
+
+  it('builds independent horizons and executes A then B with shared controls', async () => {
+    let resolveScenarioA: ((run: SimulationRunResult) => void) | undefined;
+    let call = 0;
+    const runner = new RecordingRunner((job) => {
+      call += 1;
+      return call === 1
+        ? new Promise((resolve) => {
+            resolveScenarioA = resolve;
+          })
+        : Promise.resolve(simulatedRun(job));
+    });
+    render(<App runner={runner} />);
+
+    fireEvent.change(screen.getByLabelText('Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Scenario B · Time horizon'), {
+      target: { value: '2' },
+    });
+    fireEvent.change(screen.getByLabelText('Scenario B · Initial capital'), {
+      target: { value: '22000' },
+    });
+    fireEvent.change(screen.getByLabelText('Simulated paths'), {
+      target: { value: '32' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }));
+
+    await waitFor(() => expect(runner.jobs).toHaveLength(1));
+    expect(screen.getByText('Running Scenario A')).toBeVisible();
+    expect(runner.jobs[0]?.config.durationMonths).toBe(12);
+
+    await act(async () => resolveScenarioA?.(simulatedRun(runner.jobs[0]!)));
+    await waitFor(() => expect(runner.jobs).toHaveLength(2));
+    expect(runner.jobs[1]?.config).toMatchObject({
+      durationMonths: 24,
+      initialCapital: 22_000,
+      simulationCount: 32,
+    });
+    expect(runner.jobs[0]?.seed).toBe(runner.jobs[1]?.seed);
+    expect(runner.jobs[0]?.modelVersion).toBe(runner.jobs[1]?.modelVersion);
+    await screen.findByText('Comparison complete');
+  });
+
+  it('renders synchronized small multiples, all percentiles, unavailable values, and final results', async () => {
+    const runner = new RecordingRunner((job) => Promise.resolve(simulatedRun(job)));
+    render(<App runner={runner} />);
+    fireEvent.change(screen.getByLabelText('Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Scenario B · Time horizon'), {
+      target: { value: '2' },
+    });
+    fireEvent.change(screen.getByLabelText('Simulated paths'), {
+      target: { value: '32' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }));
+
+    const charts = await screen.findAllByRole('img', {
+      name: /fan chart of simulated portfolio values/i,
+    });
+    expect(charts).toHaveLength(2);
+    expect(screen.getByRole('heading', { name: 'Scenario A' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Scenario B' })).toBeVisible();
+
+    const slider = screen.getByLabelText('Inspect comparison period');
+    expect(slider).toHaveAttribute('max', '24');
+    expect(slider).toHaveAttribute('aria-valuetext', '1 yr');
+    const inspector = screen.getByRole('region', { name: '1 yr' });
+    const inspectorTable = within(inspector).getByRole('table');
+    for (const label of [
+      'Total contributed',
+      'P5 outcome',
+      'P10 outcome',
+      'P25 outcome',
+      'P50 outcome',
+      'P75 outcome',
+      'P90 outcome',
+      'P95 outcome',
+    ]) {
+      expect(within(inspectorTable).getByText(label)).toBeVisible();
+    }
+
+    fireEvent.change(slider, { target: { value: '18' } });
+    expect(slider).toHaveAttribute('aria-valuetext', '1 yr 6 mo');
+    const laterInspector = screen.getByRole('region', { name: '1 yr 6 mo' });
+    expect(within(laterInspector).getAllByText('—').length).toBeGreaterThan(0);
+
+    const finalResults = screen.getByRole('region', {
+      name: 'Each endpoint, plus a like-for-like delta',
+    });
+    expect(finalResults).toHaveTextContent('Scenario A final · 1 yr');
+    expect(finalResults).toHaveTextContent('Scenario B final · 2 yr');
+    expect(finalResults).toHaveTextContent('Delta at common 1 yr');
+    expect(screen.getByText(/not a quantile of the pathwise/i)).toBeVisible();
+  });
+
+  it('switches exact comparison metrics between real and nominal values', async () => {
+    const runner = new RecordingRunner((job) => Promise.resolve(simulatedRun(job)));
+    render(<App runner={runner} />);
+    fireEvent.change(screen.getByLabelText('Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Scenario B · Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Simulated paths'), {
+      target: { value: '32' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }));
+
+    const realInspector = await screen.findByRole('region', { name: '1 yr' });
+    const realMedianRow = within(realInspector).getByText('P50 outcome').closest('tr');
+    expect(realMedianRow).toHaveTextContent(
+      formatCurrency(simulate(runner.jobs[0]!).realValues.finalValueStatistics.median),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nominal' }));
+    const nominalMedianRow = within(screen.getByRole('region', { name: '1 yr' }))
+      .getByText('P50 outcome')
+      .closest('tr');
+    expect(nominalMedianRow).toHaveTextContent(
+      formatCurrency(simulate(runner.jobs[0]!).finalValueStatistics.median),
+    );
+    expect(
+      screen.getByText(/comparison checkpoints in Nominal euros/i),
+    ).toBeInTheDocument();
+  });
+
+  it('defaults a zero-inflation comparison to nominal', async () => {
+    const runner = new RecordingRunner((job) => Promise.resolve(simulatedRun(job)));
+    render(<App runner={runner} />);
+    fireEvent.change(screen.getByLabelText('Annual inflation assumption'), {
+      target: { value: '0' },
+    });
+    fireEvent.change(
+      screen.getByLabelText('Scenario B · Annual inflation assumption'),
+      { target: { value: '0' } },
+    );
+    fireEvent.change(screen.getByLabelText('Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Scenario B · Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Simulated paths'), {
+      target: { value: '32' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }));
+
+    const nominalButton = await screen.findByRole('button', { name: 'Nominal' });
+    await waitFor(() => expect(nominalButton).toHaveAttribute('aria-pressed', 'true'));
+  });
+
+  it('validates both scenarios before dispatching either job', async () => {
+    const runner = successfulRunner();
+    render(<App runner={runner} />);
+    fireEvent.change(screen.getByLabelText('Initial capital'), {
+      target: { value: '-1' },
+    });
+    fireEvent.change(screen.getByLabelText('Scenario B · Annual return assumption'), {
+      target: { value: 'not-a-number' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }));
+
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts).toHaveLength(2);
+    expect(alerts[0]).toHaveTextContent('Scenario A error');
+    expect(alerts[1]).toHaveTextContent('Scenario B error');
+    expect(runner.jobs).toHaveLength(0);
+  });
+
+  it('stops before Scenario B when Scenario A execution fails', async () => {
+    const runner = new RecordingRunner(() =>
+      Promise.reject(
+        new SimulationWorkerClientError({
+          code: 'numerical_error',
+          message: 'Scenario A exceeded the supported numeric range.',
+          technical: {},
+        }),
+      ),
+    );
+    render(<App runner={runner} />);
+    fireEvent.change(screen.getByLabelText('Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Scenario B · Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Simulated paths'), {
+      target: { value: '32' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Scenario A error');
+    expect(screen.getByText('Comparison needs attention')).toBeVisible();
+    expect(runner.jobs).toHaveLength(1);
+  });
+
+  it('attributes a Scenario B execution failure after Scenario A succeeds', async () => {
+    let call = 0;
+    const runner = new RecordingRunner((job) => {
+      call += 1;
+      return call === 1
+        ? Promise.resolve(simulatedRun(job))
+        : Promise.reject(
+            new SimulationWorkerClientError({
+              code: 'numerical_error',
+              message: 'Scenario B exceeded the supported numeric range.',
+              technical: {},
+            }),
+          );
+    });
+    render(<App runner={runner} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Scenario B error');
+    expect(runner.jobs).toHaveLength(2);
+  });
+
+  it('clears a stale comparison as soon as either scenario changes', async () => {
+    const runner = new RecordingRunner((job) => Promise.resolve(simulatedRun(job)));
+    render(<App runner={runner} />);
+    fireEvent.change(screen.getByLabelText('Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Scenario B · Time horizon'), {
+      target: { value: '2' },
+    });
+    fireEvent.change(screen.getByLabelText('Simulated paths'), {
+      target: { value: '32' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }));
+    await screen.findAllByRole('img', { name: /fan chart/i });
+
+    fireEvent.change(screen.getByLabelText('Scenario B · Monthly contribution'), {
+      target: { value: '800' },
+    });
+    expect(screen.queryByRole('img', { name: /Scenario A fan chart/i })).toBeNull();
+    expect(screen.getByText('No simulated result yet')).toBeVisible();
+  });
+
+  it('disables both scenario controls during each sequential run', async () => {
+    const resolvers: Array<(run: SimulationRunResult) => void> = [];
+    const runner = new RecordingRunner(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        }),
+    );
+    render(<App runner={runner} />);
+    fireEvent.change(screen.getByLabelText('Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Scenario B · Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Simulated paths'), {
+      target: { value: '32' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }));
+
+    expect(screen.getByRole('button', { name: 'Running comparison…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Run simulation' })).toBeDisabled();
+    expect(screen.getByLabelText('Initial capital')).toBeDisabled();
+    expect(screen.getByLabelText('Scenario B · Initial capital')).toBeDisabled();
+    expect(runner.jobs).toHaveLength(1);
+
+    resolvers[0]?.(simulatedRun(runner.jobs[0]!));
+    await waitFor(() => expect(runner.jobs).toHaveLength(2));
+    expect(screen.getByText('Running Scenario B')).toBeVisible();
+    resolvers[1]?.(simulatedRun(runner.jobs[1]!));
+    await screen.findByText('Comparison complete');
   });
 });
