@@ -15,5 +15,8 @@
   },
   "peerDependencies": {
     "react": ">=19 <20"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2"
   }
 }

@@ -11,5 +11,8 @@
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "vitest run",
     "build": "tsc --project tsconfig.build.json"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2"
   }
 }

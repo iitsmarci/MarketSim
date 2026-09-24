@@ -1,0 +1,25 @@
+{
+  "productName": "MarketSim",
+  "version": "1.0.0",
+  "identifier": "com.marketsim.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev --workspace @marketsim/web",
+    "beforeBuildCommand": "npm run build --workspace @marketsim/web",
+    "devUrl": "http://localhost:4173",
+    "frontendDist": "../../web/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "MarketSim",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}

@@ -5,8 +5,12 @@ import {
   LEGACY_SIMULATION_JOB_SCHEMA_VERSION,
   LEGACY_SIMULATION_RESULT_SCHEMA_VERSION,
   PERCENTILE_KEYS,
+  SIMULATION_JOB_SCHEMA_VERSION,
+  MONTHLY_LOGNORMAL_MODEL_VERSION,
   type LegacySimulationConfig,
   type LegacySimulationJob,
+  type SimulationConfig,
+  type SimulationJob,
 } from '@marketsim/domain';
 
 import { InvalidRandomSampleError, SimulationValidationError } from './errors';
@@ -75,6 +79,26 @@ function simulate(
   options: { readonly randomSource: NormalRandomSource },
 ) {
   return simulateWithRandomSource(job(input), options.randomSource);
+}
+
+function simConfig(overrides: Partial<SimulationConfig> = {}): SimulationConfig {
+  return { ...baseConfig, annualInflation: 0, ...overrides };
+}
+
+function simJob(input: SimulationConfig): SimulationJob {
+  return {
+    schemaVersion: SIMULATION_JOB_SCHEMA_VERSION,
+    modelVersion: MONTHLY_LOGNORMAL_MODEL_VERSION,
+    seed: TEST_SEED,
+    config: input,
+  };
+}
+
+function simulateCurrent(
+  input: SimulationConfig,
+  options: { readonly randomSource: NormalRandomSource },
+) {
+  return simulateWithRandomSource(simJob(input), options.randomSource);
 }
 
 function deterministicBalance(input: LegacySimulationConfig): number {
@@ -267,5 +291,53 @@ describe('simulate', () => {
         { randomSource: new ControlledNormalSource([Number.NaN]) },
       ),
     ).toThrow(InvalidRandomSampleError);
+  });
+
+  it('handles withdrawals and sets balance to 0 if ruined', () => {
+    const input = simConfig({
+      initialCapital: 100,
+      monthlyContribution: -150,
+      durationMonths: 1,
+      annualExpectedReturn: 0,
+      annualVolatility: 0,
+      simulationCount: 1,
+    });
+    const result = simulateCurrent(input, { randomSource: new FailingNormalSource() });
+
+    expect(result.finalValueStatistics.median).toBe(0);
+  });
+
+  it('applies annual costs', () => {
+    const input = simConfig({
+      initialCapital: 1000,
+      monthlyContribution: 0,
+      durationMonths: 12,
+      annualExpectedReturn: 0,
+      annualVolatility: 0,
+      annualCosts: 0.1,
+      simulationCount: 1,
+    });
+    const result = simulateCurrent(input, { randomSource: new FailingNormalSource() });
+
+    expect(result.finalValueStatistics.median).toBeCloseTo(900, 5);
+  });
+
+  it('applies market shocks when enabled', () => {
+    const input = simConfig({
+      initialCapital: 1000,
+      monthlyContribution: 0,
+      durationMonths: 1,
+      annualExpectedReturn: 0,
+      annualVolatility: 0,
+      marketShockFrequency: 12,
+      marketShockMagnitude: -0.5,
+      simulationCount: 1,
+    });
+
+    const result = simulateCurrent(input, {
+      randomSource: new ControlledNormalSource([0]),
+    });
+
+    expect(result.finalValueStatistics.median).toBeCloseTo(500, 5);
   });
 });

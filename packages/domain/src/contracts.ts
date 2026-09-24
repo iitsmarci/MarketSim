@@ -45,6 +45,13 @@ export interface LegacySimulationConfig {
 export interface SimulationConfig extends LegacySimulationConfig {
   /** Deterministic effective annual change in the price level. */
   readonly annualInflation: number;
+  readonly annualCosts?: number;
+  readonly marketShockFrequency?: number;
+  readonly marketShockMagnitude?: number;
+  readonly stockAllocation?: number;
+  readonly bondAnnualExpectedReturn?: number;
+  readonly bondAnnualVolatility?: number;
+  readonly stockBondCorrelation?: number;
 }
 
 /** Legacy serializable contract retained without reinterpretation. */

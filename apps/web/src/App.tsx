@@ -4,6 +4,8 @@ import { ActionButton, BrandMark, NumericField, ThemeSelector } from '@marketsim
 
 import { FanChart } from './components/FanChart';
 import { ScenarioComparisonView } from './components/ScenarioComparisonView';
+import { ScenarioManager } from './components/ScenarioManager';
+import { Guide } from './components/Guide';
 import { SimulationResults } from './components/SimulationResults';
 import type { ValueMode } from './components/fan-chart-model';
 import {
@@ -15,6 +17,7 @@ import {
   type ScenarioComparisonSettings,
   type ScenarioId,
 } from './features/scenarios/scenario-comparison';
+import type { SimulationConfig } from '@marketsim/domain';
 import { formatDuration } from './features/simulation/format';
 import {
   buildSimulationJob,
@@ -436,6 +439,7 @@ export function App({ runner }: AppProps) {
             {messages.nav.workspace}
           </a>
           <a href="#method">{messages.nav.method}</a>
+          <a href="#guide">Guide</a>
         </nav>
         <div className="header-tools">
           <span className="local-status">
@@ -485,6 +489,13 @@ export function App({ runner }: AppProps) {
                 <p className="eyebrow">{messages.assumptions.eyebrow}</p>
                 <h3 id="assumptions-title">{messages.comparison.formTitle}</h3>
                 <p>{messages.comparison.formDescription}</p>
+                <ScenarioManager
+                  disabled={isRunning}
+                  currentConfig={assumptions as unknown as Partial<SimulationConfig>}
+                  onLoad={(loaded) => {
+                    setAssumptions(loaded as unknown as ScenarioAssumptionValues);
+                  }}
+                />
               </div>
 
               <fieldset className="scenario-assumptions scenario-assumptions--a">
@@ -689,6 +700,15 @@ export function App({ runner }: AppProps) {
             <p className="method__description">{messages.method.description}</p>
             <p className="disclaimer">{messages.method.disclaimer}</p>
           </div>
+        </section>
+
+        <section
+          className="guide"
+          id="guide"
+          aria-labelledby="guide-title"
+          style={{ marginTop: 'var(--space-8)' }}
+        >
+          <Guide />
         </section>
       </main>
     </div>

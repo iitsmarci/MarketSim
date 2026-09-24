@@ -1,0 +1,21 @@
+{
+  "name": "@marketsim/storage",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@marketsim/domain": "0.0.0",
+    "idb-keyval": "^6.2.1"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "fake-indexeddb": "^6.0.0"
+  }
+}

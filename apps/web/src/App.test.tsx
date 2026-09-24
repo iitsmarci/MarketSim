@@ -617,6 +617,15 @@ describe('MarketSim simulation workspace', () => {
           );
     });
     render(<App runner={runner} />);
+    fireEvent.change(screen.getByLabelText('Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Scenario B · Time horizon'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText('Simulated paths'), {
+      target: { value: '32' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }));
 
     const alert = await screen.findByRole('alert');

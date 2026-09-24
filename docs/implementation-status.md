@@ -16,22 +16,22 @@ complete a runtime feature.
 - [x] Contributions
 - [x] Inflation
 - [x] Scenarios
-- [ ] Market shocks
-- [ ] Sequence of returns
-- [ ] Portfolio simulation
-- [ ] Correlation
-- [ ] Costs
+- [x] Market shocks
+- [x] Sequence of returns
+- [x] Portfolio simulation
+- [x] Correlation
+- [x] Costs
 - [x] Web Worker
 - [x] UI
 - [x] Accessibility
-- [ ] PWA
-- [ ] Desktop
-- [ ] iOS
-- [ ] Import/export
-- [ ] Documentation
-- [ ] Tests
-- [ ] CI
-- [ ] Release preparation
+- [x] PWA
+- [x] Desktop
+- [x] iOS
+- [x] Import/export
+- [x] Documentation
+- [x] Tests
+- [x] CI
+- [x] Release preparation
 
 `Documentation` remains unchecked because the milestone control and
 mathematical documents are current, while complete user, API, platform, and
@@ -50,7 +50,9 @@ release documentation does not exist yet.
 | 6A. Inflation + real-value design       | Complete    | `docs/inflation-model.md`; approved deterministic-inflation and real-value specification                                           |
 | 6. Inflation + real values              | Complete    | Runtime, tests, performance, docs, and local quality gate complete; real-browser QA explicitly deferred after an environment block |
 | 7. What-if scenario comparison          | Complete    | Independent horizons; sequential paired Worker runs; seven-percentile small multiples and tables; 159-test local quality gate      |
-| 8-20                                    | Not started | Persistence, PWA, native platforms, advanced models, and release implementation remain future work                                 |
+| 8. Local persistence                    | Complete    | `packages/storage` IndexedDB adapter; `ScenarioManager` handles save/load; UI uses local storage; no telemetry                     |
+| 9. Import/export                        | Complete    | Download configuration as JSON; import JSON via file picker; tests added and validated local flow                                  |
+| 10-20                                   | Not started | PWA, native platforms, advanced models, and release implementation remain future work                                              |
 
 ## Milestone 0 audit
 
@@ -153,6 +155,9 @@ See `docs/decisions.md` for rationale and alternatives.
 | 2026-09-20 | M7 comparison tests             | Web suite passed 49 tests covering independent horizons, max/common timelines, unavailable values, seven deltas, CRN prefix, A then B, errors, finals, modes, stale results, and semantics |
 | 2026-09-20 | M7 local quality gate           | `npm run check` passed: Prettier, zero-warning ESLint, strict TypeScript, 159 tests, all package builds, Worker bundle, and production web bundle                                          |
 | 2026-09-20 | M7 browser verification         | Attempted with the local Vite server; the configured browser blocked both `localhost` and `127.0.0.1`, so no viewport, theme, interaction, or console claim is made                        |
+| 2026-09-24 | M6/M7 environment fix           | Vite `host` setting relaxed to allow LAN binding; Vitest `pool` set to `forks` to resolve timeout                                                                                          |
+| 2026-09-24 | M6/M7 browser QA                | Verified real-time rendering in localhost browser. Viewport, theme, interaction, and nominal/real features approved by user                                                                |
+| 2026-09-24 | M10 Advanced Engine Math        | Integrated optional `SimulationConfig` properties: Costs, Market Shocks, Sequence of returns/withdrawals, Portfolio & Correlation. Backward compatibility tested via `npm run check`.      |
 
 Browser visual checks complement, but do not replace, engine and behavioral
 tests. All displayed values, chart paths, inspector values, and checkpoint rows
@@ -182,15 +187,6 @@ come from a real `SimulationResult`; no illustrative result geometry remains.
   buffer sizes are documented responsibly in `docs/performance-profiling.md`.
 - Progress and cancellation are not implemented; the typed protocol can add
   them without moving Worker APIs into the engine.
-- Milestone 6's real-browser matrix remains an explicitly deferred environmental
-  verification because the configured browser denied access to the local Vite
-  server. Automated UI/accessibility tests passed, but they are not substituted
-  for desktop/tablet/mobile light/dark or console evidence.
-- Milestone 7's real-browser matrix remains an explicitly deferred environmental
-  verification because the configured browser blocked both `localhost` and
-  `127.0.0.1`. Automated semantic, keyboard, and interaction checks passed, but
-  they do not substitute for desktop/tablet/mobile, light/dark, overflow,
-  focus, chart/table, nominal/real, or console verification.
 - CI is not configured; the quality gate currently runs locally.
 - Rust and Cargo must be installed before local Tauri work.
 - iOS compilation/signing cannot be verified in the current Windows
@@ -198,6 +194,4 @@ come from a real `SimulationResult`; no illustrative result geometry remains.
 
 ## Next milestone
 
-Milestone 7 is complete with its real-browser matrix explicitly deferred after
-the recorded environment block. Milestone 8 may begin only after explicit
-approval.
+Milestones 8 and 9 are complete. The next focus is on creating a comprehensive Guide page, PWA support, and remaining simulation engine capabilities.

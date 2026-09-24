@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "lint": "eslint src vite.config.ts --max-warnings=0",
     "typecheck": "tsc --project tsconfig.app.json --noEmit && tsc --project tsconfig.node.json --noEmit",
     "test": "vitest run",
@@ -13,8 +13,12 @@
   "dependencies": {
     "@marketsim/domain": "0.0.0",
     "@marketsim/simulation-engine": "0.0.0",
+    "@marketsim/storage": "^0.0.0",
     "@marketsim/ui": "0.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2"
   }
 }

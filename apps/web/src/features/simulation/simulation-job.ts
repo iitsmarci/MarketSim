@@ -51,7 +51,7 @@ export type BuildSimulationJobResult =
     };
 
 const assumptionByConfigField: Readonly<
-  Record<SimulationConfigField, keyof AssumptionValues>
+  Partial<Record<SimulationConfigField, keyof AssumptionValues>>
 > = {
   initialCapital: 'initialCapital',
   monthlyContribution: 'monthlyContribution',
@@ -94,7 +94,7 @@ export function buildSimulationJob(
   for (const issue of validation.issues) {
     if (issue.field in assumptionByConfigField) {
       const configField = issue.field as SimulationConfigField;
-      errors[assumptionByConfigField[configField]] = issue.message;
+      errors[assumptionByConfigField[configField]!] = issue.message;
     }
   }
 

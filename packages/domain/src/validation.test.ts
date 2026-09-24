@@ -66,7 +66,7 @@ describe('validateSimulationConfig', () => {
     const result = validateSimulationConfig({
       ...validConfig,
       initialCapital: Number.POSITIVE_INFINITY,
-      monthlyContribution: -10,
+      monthlyContribution: -1_000_000_001,
       durationMonths: 0,
       annualVolatility: -1,
     });

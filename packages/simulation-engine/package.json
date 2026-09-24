@@ -15,5 +15,8 @@
   },
   "dependencies": {
     "@marketsim/domain": "0.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2"
   }
 }
