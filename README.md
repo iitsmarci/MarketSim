@@ -1,58 +1,40 @@
-# MarketSim
+# 📈 MarketSim
 
-**Make uncertainty visible.**
+> **Make uncertainty visible.**
 
-MarketSim is an offline-first educational tool for exploring the range of
-outcomes produced by financial assumptions. It is being built milestone by
-milestone. The current web application runs the independently testable pure
-TypeScript simulation core in a dedicated Worker and presents inspectable
-nominal or today's-euro percentile bands and statistics without blocking React.
-Two editable what-if scenarios can be run sequentially with common random
-numbers and compared through synchronized uncertainty views.
+MarketSim is an offline-first educational tool for exploring the range of outcomes produced by financial assumptions. Built milestone by milestone, it provides a safe, zero-risk sandbox to test investment strategies, visualize percentiles, and compare economic scenarios without relying on external servers.
 
-> MarketSim is an educational simulation tool. It does not predict future
-> market returns and does not constitute financial advice.
+**[👉 Try MarketSim Live](https://your-project-link.vercel.app)
 
-## Current scope
+---
 
-Milestone 7 adds application-level Scenario A/B drafts and exact what-if
-comparison for contributed capital and all seven percentiles in nominal or real
-terms. Capital, contributions, return, volatility, inflation, and horizon are
-independent; the jobs share the canonical seed, model, and path count. One
-Worker runs A and then B, and synchronized small multiples stop at each
-scenario's actual horizon. The existing engine, RNG, Worker protocol, and
-domain schemas are unchanged. Persistence, history, import/export, PWA,
-progress/cancellation, advanced models, and native shells remain deferred.
+## ⚖️ Disclaimer
+**MarketSim is an educational simulation tool. It does not predict future market returns, does not constitute financial advice, and does not guarantee real-world results.** 
 
-## Development
+---
 
-Requirements: Node.js 22.12-24 and npm 11.
+## ✨ Core Features & Current Scope
 
-```text
+The application is currently at **Milestone 7**, featuring a highly optimized architecture and advanced comparative tools:
+
+*   **Offline-First & Privacy by Design:** The product has absolutely no mandatory backend, accounts, analytics, or hidden telemetry. Everything runs locally on your browser.
+*   **High-Performance Engine:** A pure TypeScript simulation core runs in a dedicated Web Worker. It presents inspectable nominal or today's-euro percentile bands and statistics without blocking the React frontend.
+*   **Scenario A/B Comparison:** Run two editable what-if scenarios sequentially using common random numbers. Compare contributed capital and all seven percentiles (nominal or real terms) through synchronized uncertainty views.
+*   **Independent Variables:** Capital, contributions, returns, volatility, inflation, and horizon are fully independent. The jobs share the canonical seed, model, and path count.
+*   **Deferred for Future Milestones:** Persistence, history, import/export, PWA, progress/cancellation, advanced models, and native shells.
+
+---
+
+## 💻 Local Development
+
+MarketSim is built with modern web technologies. To run the simulator locally on your machine:
+
+**Requirements:** Node.js 22.12–24 and npm 11.
+
+### Quick Start
+```bash
+# Install dependencies
 npm install
+
+# Start the local development server
 npm run dev
-npm run lint
-npm run typecheck
-npm test
-npm run build
-```
-
-Run the complete local quality gate with `npm run check`.
-
-Run the separate non-gating engine profiler with
-`npm run profile:simulation`. For the real Worker profile, start `npm run dev`
-and open `/worker-profile.html`; this diagnostic page is excluded from the
-production build. Methodology and recorded results are in
-`docs/performance-profiling.md`.
-
-## Architecture and design
-
-- `docs/architecture.md`
-- `docs/visual-direction.md`
-- `docs/simulation-model.md`
-- `docs/inflation-model.md`
-- `docs/decisions.md`
-- `docs/implementation-status.md`
-- `docs/performance-profiling.md`
-
-The product has no mandatory backend, account, analytics, or hidden telemetry.
